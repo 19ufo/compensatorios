@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador de Horas de Compensación — Anderson CT (Online Cloud)</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Cargar archivo de configuración de la nube -->
+    <script src="config.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        legion: {
+                            bg: '#F7F6F2',          // Marfil suave / Lienzo
+                            surface: '#EFECE5',     // Piedra suave
+                            border: '#E1DDD5',      // Borde arena neutro
+                            green: '#1E382B',       // Verde bosque profundo (Teletrabajo / Principal)
+                            greenHover: '#2A4E3D',  // Verde bosque hover
+                            greenSoft: '#E6EFEA',   // Fondo salvia suave
+                            brown: '#6E4C33',       // Cuero cálido (Presencial)
+                            brownHover: '#865E40',  // Cuero hover
+                            brownSoft: '#F4ECE4',   // Fondo arena cálido
+                            charcoal: '#1F262B',    // Pizarra casi negro
+                            muted: '#5C646B',       // Texto secundario
+                            cobalt: '#1E56A0',      // Azul cobalto de las Alas
+                            cobaltSoft: '#E8F1FC',  // Fondo cobalto sutil
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F7F6F2;
+            color: #1F262B;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bar-planned-green {
+            background-color: #83A693;
+            background-image: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.28),
+                rgba(255, 255, 255, 0.28) 6px,
+                transparent 6px,
+                transparent 12px
+            );
+        }
+
+        .bar-planned-brown {
+            background-color: #B99980;
+            background-image: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.28),
+                rgba(255, 255, 255, 0.28) 6px,
+                transparent 6px,
+                transparent 12px
+            );
+        }
+
+        .smooth-bar {
+            transition: width 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F7F6F2; }
+        ::-webkit-scrollbar-thumb { background: #D1C9BD; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #865E40; }
+        
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(0.98); }
+        }
+        .animate-syncing {
+            animation: pulse-subtle 1.2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans pb-16 selection:bg-legion-green selection:text-white">
+
+    <!-- CONTENEDOR DE MENSAJES TOAST FLOTANTES -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- ENCABEZADO EJECUTIVO MINIMALISTA -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-legion-border sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            
+            <div class="flex items-center gap-3.5">
+                <!-- Escudo de las Alas de la Libertad en SVG Vectorial de Alta Definición -->
+                <div class="w-12 h-12 rounded-xl bg-[#14241B] border border-[#2B4737] flex items-center justify-center shadow-sm shrink-0" title="Alas de la Libertad">
+                    <svg viewBox="0 0 120 140" class="w-10 h-11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 22 H102 V84 C102 106 60 126 60 126 C60 126 18 106 18 84 Z" fill="#0C120F" stroke="#F8FAFC" stroke-width="3.5" stroke-linejoin="round"/>
+                        <path d="M22 26 H98 V83 C98 102 60 120 60 120 C60 120 22 102 22 83 Z" stroke="#F8FAFC" stroke-width="1" stroke-opacity="0.45"/>
+                        <line x1="60" y1="22" x2="60" y2="125" stroke="#F8FAFC" stroke-width="2" stroke-opacity="0.8"/>
+                        <line x1="18" y1="62" x2="102" y2="62" stroke="#F8FAFC" stroke-width="2" stroke-opacity="0.8"/>
+
+                        <!-- ALA IZQUIERDA (AZUL COBALTO) -->
+                        <g fill="#1E56A0" stroke="#0A1118" stroke-width="1.6" stroke-linejoin="round">
+                            <polygon points="24,10 43,28 36,35 19,18"/>
+                            <polygon points="15,23 39,40 34,47 12,31"/>
+                            <polygon points="13,36 37,51 33,59 11,45"/>
+                            <polygon points="14,50 37,63 34,71 13,59"/>
+                            <polygon points="17,64 38,75 36,83 16,72"/>
+                            <polygon points="21,77 40,86 38,94 20,85"/>
+                            <polygon points="26,89 43,96 41,103 25,96"/>
+                            <polygon points="32,100 47,105 45,111 31,106"/>
+                        </g>
+                        <!-- Capa secundaria de plumas azules -->
+                        <g fill="#256FD0" stroke="#0A1118" stroke-width="1.4" stroke-linejoin="round">
+                            <polygon points="41,28 56,43 50,49 36,35"/>
+                            <polygon points="38,40 53,53 48,60 34,47"/>
+                            <polygon points="36,52 51,64 46,71 33,59"/>
+                            <polygon points="36,64 50,74 46,81 34,71"/>
+                            <polygon points="38,76 51,85 48,91 36,83"/>
+                            <polygon points="56,105 84,96 78,105 53,113"/>
+                            <polygon points="62,111 86,108 79,115 58,117"/>
+                            <polygon points="66,116 85,123 75,125 61,119"/>
+                        </g>
+
+                        <!-- ALA DERECHA (BLANCO) -->
+                        <g fill="#FFFFFF" stroke="#0A1118" stroke-width="1.6" stroke-linejoin="round">
+                            <polygon points="62,38 49,50 50,59 63,47"/>
+                            <polygon points="62,49 48,61 49,70 63,58"/>
+                            <polygon points="61,60 47,72 48,81 62,69"/>
+                            <polygon points="60,71 46,83 47,91 61,80"/>
+                            <polygon points="59,82 44,94 46,102 60,90"/>
+                            <polygon points="58,92 41,106 44,113 59,100"/>
+                            <polygon points="57,102 32,123 39,126 59,109"/>
+                            <polygon points="59,110 49,127 55,128 63,115"/>
+                        </g>
+                        <!-- Fila exterior plumas blancas -->
+                        <g fill="#F1F5F9" stroke="#0A1118" stroke-width="1.6" stroke-linejoin="round">
+                            <polygon points="99,11 80,26 81,36 97,22"/>
+                            <polygon points="104,24 80,38 81,48 101,35"/>
+                            <polygon points="106,37 79,50 80,60 103,48"/>
+                            <polygon points="104,50 78,62 79,71 101,60"/>
+                            <polygon points="101,63 76,73 77,82 98,72"/>
+                            <polygon points="96,75 74,84 75,92 93,84"/>
+                            <polygon points="91,87 72,94 73,101 88,95"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-legion-brown">Anderson CT</span>
+                        <span class="text-legion-border">•</span>
+                        <span class="text-[11px] font-medium text-legion-muted">Meta: 40 Horas (20h / 20h)</span>
+                    </div>
+                    <h1 class="font-display text-lg sm:text-xl font-bold text-legion-charcoal tracking-tight">
+                        Control de Horas de Compensación
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Botones de Acción Superior & Estado de Sincronización en la Nube -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                
+                <!-- BADGE / BOTÓN DE ESTADO CLOUD EN VIVO -->
+                <button onclick="openCloudModal()" id="cloud-status-badge" class="px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition bg-white border-legion-border hover:bg-legion-surface shadow-xs" title="Clic para configurar sincronización en cualquier computador">
+                    <span id="cloud-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    <span id="cloud-status-text" class="text-legion-charcoal">Modo Local</span>
+                    <i class="fa-solid fa-cloud text-legion-muted text-[11px]"></i>
+                </button>
+
+                <button onclick="openPlannerModal()" class="px-3.5 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-white text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
+                    <span>Auto-planificar</span>
+                </button>
+
+                <button onclick="exportToCSV()" class="px-3 py-2 rounded-lg bg-white hover:bg-legion-surface text-legion-charcoal border border-legion-border text-xs font-medium flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-file-arrow-down text-legion-green"></i>
+                    <span class="hidden sm:inline">CSV</span>
+                </button>
+
+                <button onclick="openResetModal()" class="px-3 py-2 rounded-lg bg-white hover:bg-legion-brownSoft text-legion-brown border border-legion-border text-xs font-medium flex items-center gap-1.5 transition" title="Restaurar registros base del Excel">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                    <span class="hidden md:inline">Restaurar</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- CUERPO PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        <!-- BARRA RÁPIDA DE ATAJOS DE PLANIFICACIÓN A 1 CLIC -->
+        <section class="bg-white rounded-2xl p-4 border border-legion-border shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs font-semibold text-legion-charcoal">
+                    <span class="w-6 h-6 rounded-lg bg-legion-green/10 text-legion-green flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-bolt"></i>
+                    </span>
+                    <span>Atajos de Planificación Rápida:</span>
+                    <span class="text-xs font-normal text-legion-muted hidden sm:inline">(Carga el horario y sugiere automáticamente la próxima fecha)</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <!-- Atajo 1: Sábado Presencial (6h) -->
+                    <button type="button" onclick="triggerPreset('SABADO_6H')"
+                        class="px-3.5 py-2 rounded-xl bg-legion-brownSoft/70 hover:bg-legion-brownSoft text-legion-brown border border-legion-brown/25 text-xs font-semibold flex items-center justify-between gap-2 transition group text-left">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-regular fa-building text-legion-brown group-hover:scale-110 transition-transform"></i>
+                            <div>
+                                <span class="block font-bold">Sábado Presencial (6h)</span>
+                                <span class="text-[10px] text-legion-muted font-normal">7:00 am – 1:00 pm</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-legion-brown/50 group-hover:translate-x-0.5 transition-transform"></i>
+                    </button>
+
+                    <!-- Atajo 2: Antes de la Jornada (1h) -->
+                    <button type="button" onclick="triggerPreset('MANANA_1H')"
+                        class="px-3.5 py-2 rounded-xl bg-legion-greenSoft/70 hover:bg-legion-greenSoft text-legion-green border border-legion-green/25 text-xs font-semibold flex items-center justify-between gap-2 transition group text-left">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-sun text-amber-600 group-hover:scale-110 transition-transform"></i>
+                            <div>
+                                <span class="block font-bold">Antes de Jornada (1h)</span>
+                                <span class="text-[10px] text-legion-muted font-normal">6:30 am – 7:30 am • Tele</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-legion-green/50 group-hover:translate-x-0.5 transition-transform"></i>
+                    </button>
+
+                    <!-- Atajo 3: Final de Jornada (1h) -->
+                    <button type="button" onclick="triggerPreset('TARDE_1H')"
+                        class="px-3.5 py-2 rounded-xl bg-legion-surface hover:bg-legion-border text-legion-charcoal border border-legion-border text-xs font-semibold flex items-center justify-between gap-2 transition group text-left">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-moon text-indigo-700 group-hover:scale-110 transition-transform"></i>
+                            <div>
+                                <span class="block font-bold">Final de Jornada (1h)</span>
+                                <span class="text-[10px] text-legion-muted font-normal">4:20 pm – 5:20 pm • Tele</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-legion-charcoal/50 group-hover:translate-x-0.5 transition-transform"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. TARJETAS DE PROGRESO (CERO DECIMALES) -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            <!-- TARJETA GENERAL: 40 HORAS -->
+            <div class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-legion-muted">Progreso General</span>
+                        <span id="badge-total-pct" class="text-xs font-bold px-2.5 py-1 rounded-full bg-legion-surface text-legion-charcoal">
+                            0% cumplido
+                        </span>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mb-4">
+                        <div>
+                            <span id="stat-total-done" class="font-display text-3xl font-extrabold text-legion-charcoal">0</span>
+                            <span class="text-sm font-medium text-legion-muted">/ 40 h cumplidas</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-legion-muted block">Total en agenda</span>
+                            <span id="stat-total-projected" class="text-sm font-bold text-legion-green">0 h (0%)</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full h-2.5 bg-legion-surface rounded-full overflow-hidden flex mb-3">
+                        <div id="bar-total-done" class="h-full bg-legion-charcoal smooth-bar" style="width: 0%"></div>
+                        <div id="bar-total-planned" class="h-full bar-planned-green smooth-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-3 border-t border-legion-border/70 text-center">
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Cumplidas</span>
+                        <span id="sub-total-done" class="text-sm font-bold text-legion-charcoal">0 h</span>
+                    </div>
+                    <div class="border-x border-legion-border/70">
+                        <span class="text-[11px] text-legion-muted block">Planificadas</span>
+                        <span id="sub-total-planned" class="text-sm font-bold text-legion-green">0 h</span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Por agendar</span>
+                        <span id="sub-total-unassigned" class="text-sm font-bold text-legion-brown">40 h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TARJETA TELETRABAJO: 20 HORAS -->
+            <div class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-legion-green"></div>
+                <div class="pl-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-md bg-legion-greenSoft text-legion-green flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-laptop"></i>
+                            </span>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-legion-green">Teletrabajo (Meta: 20h)</span>
+                        </div>
+                        <button onclick="triggerPreset('MANANA_1H')" class="text-[11px] font-semibold text-legion-green hover:underline">
+                            + 1h Rápida
+                        </button>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mb-4">
+                        <div>
+                            <span id="stat-tele-done" class="font-display text-3xl font-extrabold text-legion-green">0</span>
+                            <span class="text-sm font-medium text-legion-muted">/ 20 h cumplidas</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-legion-muted block">En agenda</span>
+                            <span id="stat-tele-projected" class="text-sm font-bold text-legion-green">0 / 20 h</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full h-2.5 bg-legion-surface rounded-full overflow-hidden flex mb-3">
+                        <div id="bar-tele-done" class="h-full bg-legion-green smooth-bar" style="width: 0%"></div>
+                        <div id="bar-tele-planned" class="h-full bar-planned-green smooth-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="pl-2 grid grid-cols-3 gap-2 pt-3 border-t border-legion-border/70 text-center">
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Cumplidas</span>
+                        <span id="sub-tele-done" class="text-sm font-bold text-legion-green">0 h</span>
+                    </div>
+                    <div class="border-x border-legion-border/70">
+                        <span class="text-[11px] text-legion-muted block">Planificadas</span>
+                        <span id="sub-tele-planned" class="text-sm font-bold text-legion-charcoal">0 h</span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Faltan</span>
+                        <span id="sub-tele-unassigned" class="text-sm font-bold text-legion-muted">20 h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TARJETA PRESENCIAL: 20 HORAS -->
+            <div class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-legion-brown"></div>
+                <div class="pl-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-md bg-legion-brownSoft text-legion-brown flex items-center justify-center text-xs">
+                                <i class="fa-regular fa-building"></i>
+                            </span>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-legion-brown">Presencial (Meta: 20h)</span>
+                        </div>
+                        <button onclick="triggerPreset('SABADO_6H')" class="text-[11px] font-semibold text-legion-brown hover:underline">
+                            + 6h Sábado
+                        </button>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mb-4">
+                        <div>
+                            <span id="stat-pres-done" class="font-display text-3xl font-extrabold text-legion-brown">0</span>
+                            <span class="text-sm font-medium text-legion-muted">/ 20 h cumplidas</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-legion-muted block">En agenda</span>
+                            <span id="stat-pres-projected" class="text-sm font-bold text-legion-brown">0 / 20 h</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full h-2.5 bg-legion-surface rounded-full overflow-hidden flex mb-3">
+                        <div id="bar-pres-done" class="h-full bg-legion-brown smooth-bar" style="width: 0%"></div>
+                        <div id="bar-pres-planned" class="h-full bar-planned-brown smooth-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="pl-2 grid grid-cols-3 gap-2 pt-3 border-t border-legion-border/70 text-center">
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Cumplidas</span>
+                        <span id="sub-pres-done" class="text-sm font-bold text-legion-brown">0 h</span>
+                    </div>
+                    <div class="border-x border-legion-border/70">
+                        <span class="text-[11px] text-legion-muted block">Planificadas</span>
+                        <span id="sub-pres-planned" class="text-sm font-bold text-legion-charcoal">0 h</span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-legion-muted block">Faltan</span>
+                        <span id="sub-pres-unassigned" class="text-sm font-bold text-legion-muted">20 h</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 2. COBERTURA DE LOS 5 DÍAS HÁBILES DE ENERO 2027 (4 AL 8 DE ENERO) -->
+        <section class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div>
+                    <h2 class="font-display text-sm sm:text-base font-bold text-legion-charcoal">
+                        Cobertura Semana 4 al 8 de Enero 2027
+                    </h2>
+                    <p class="text-xs text-legion-muted">
+                        5 días laborales de lunes a viernes (<strong>8 horas exactas por día = 40 horas</strong>).
+                    </p>
+                </div>
+                <div class="flex items-center gap-4 text-xs">
+                    <span class="flex items-center gap-1.5 text-legion-charcoal font-medium">
+                        <span class="w-2.5 h-2.5 rounded-full bg-legion-green inline-block"></span> Cubierto
+                    </span>
+                    <span class="flex items-center gap-1.5 text-legion-muted font-medium">
+                        <span class="w-2.5 h-2.5 rounded-full bg-legion-brown/60 inline-block"></span> En agenda
+                    </span>
+                </div>
+            </div>
+
+            <!-- Grid de los 5 días hábiles -->
+            <div id="january-days-grid" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <!-- Se llena dinámicamente por JavaScript -->
+            </div>
+        </section>
+
+        <!-- 3. FORMULARIO RÁPIDO (IZQ) + TABLA DE SESIONES (DER) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+            <div class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm lg:col-span-4">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-legion-border">
+                    <h3 id="form-title" class="font-display text-base font-bold text-legion-charcoal">
+                        Agregar sesión
+                    </h3>
+                    <span id="edit-badge" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded bg-legion-brownSoft text-legion-brown">
+                        Editando registro
+                    </span>
+                </div>
+
+                <form id="session-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="input-id" value="">
+
+                    <!-- Fecha y Día -->
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Fecha</label>
+                            <input type="date" id="input-fecha" required onchange="updateDayLabel()"
+                                class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-3 py-2 text-sm text-legion-charcoal outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Día</label>
+                            <input type="text" id="input-dia" readonly
+                                class="w-full rounded-lg bg-legion-surface border border-legion-border px-3 py-2 text-sm font-medium text-legion-muted outline-none cursor-default">
+                        </div>
+                    </div>
+
+                    <!-- Horas Inicio, Fin y Total Entero -->
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div>
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Hora inicio</label>
+                            <input type="time" id="input-inicio" required onchange="recalcHours()"
+                                class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-2.5 py-2 text-sm text-legion-charcoal outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Hora fin</label>
+                            <input type="time" id="input-fin" required onchange="recalcHours()"
+                                class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-2.5 py-2 text-sm text-legion-charcoal outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-legion-green mb-1">Horas (Entero)</label>
+                            <input type="number" id="input-horas" step="1" min="1" max="16" required
+                                class="w-full rounded-lg bg-legion-greenSoft/60 border border-legion-green/30 focus:border-legion-green px-2.5 py-2 text-sm font-bold text-legion-green outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Modalidad y Estado -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Modalidad</label>
+                            <select id="input-modalidad" required
+                                class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-3 py-2 text-sm text-legion-charcoal outline-none transition">
+                                <option value="Teletrabajo">Teletrabajo</option>
+                                <option value="Presencial">Presencial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-legion-muted mb-1">Estado</label>
+                            <select id="input-estado" required
+                                class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-3 py-2 text-sm text-legion-charcoal outline-none transition">
+                                <option value="Cumplido">Cumplido</option>
+                                <option value="Planificado" selected>Planificado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div>
+                        <label class="block text-xs font-medium text-legion-muted mb-1">Observaciones / Tarea</label>
+                        <textarea id="input-observaciones" rows="2" placeholder="Detalla la actividad o incidente atendido..."
+                            class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green focus:bg-white px-3 py-2 text-sm text-legion-charcoal outline-none transition"></textarea>
+                    </div>
+
+                    <!-- Botones Guardar / Cancelar -->
+                    <div class="flex items-center gap-2 pt-1">
+                        <button type="submit"
+                            class="w-full py-2.5 px-4 rounded-lg bg-legion-green hover:bg-legion-greenHover text-white font-semibold text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i>
+                            <span id="btn-submit-label">Guardar sesión</span>
+                        </button>
+                        <button type="button" id="btn-cancel-edit" onclick="resetForm()"
+                            class="hidden py-2.5 px-3 rounded-lg bg-legion-surface hover:bg-legion-border text-legion-charcoal text-xs font-medium transition">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- COLUMNA DERECHA: TABLA DE REGISTROS -->
+            <div class="bg-white rounded-2xl p-5 border border-legion-border shadow-sm lg:col-span-8 flex flex-col justify-between">
+                <div>
+                    <!-- Filtros y Búsqueda -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-legion-border">
+                        <div>
+                            <h3 class="font-display text-base font-bold text-legion-charcoal">
+                                Registro de Sesiones
+                            </h3>
+                            <p class="text-xs text-legion-muted">
+                                Haz clic en <span class="font-semibold text-legion-charcoal">Cumplido/Planificado</span> para alternar al instante.
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select id="filter-modalidad" onchange="renderTable()"
+                                class="rounded-lg bg-legion-bg border border-legion-border px-2.5 py-1.5 text-xs font-medium text-legion-charcoal outline-none">
+                                <option value="ALL">Todas las modalidades</option>
+                                <option value="Teletrabajo">Teletrabajo</option>
+                                <option value="Presencial">Presencial</option>
+                            </select>
+
+                            <select id="filter-estado" onchange="renderTable()"
+                                class="rounded-lg bg-legion-bg border border-legion-border px-2.5 py-1.5 text-xs font-medium text-legion-charcoal outline-none">
+                                <option value="ALL">Todos los estados</option>
+                                <option value="Cumplido">Cumplido</option>
+                                <option value="Planificado">Planificado</option>
+                            </select>
+
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-xs text-legion-muted"></i>
+                                <input type="text" id="filter-search" oninput="renderTable()" placeholder="Buscar..."
+                                    class="pl-7 pr-3 py-1.5 rounded-lg bg-legion-bg border border-legion-border text-xs text-legion-charcoal outline-none focus:border-legion-green w-36 sm:w-44">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla con Scroll -->
+                    <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-xl border border-legion-border">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-legion-bg sticky top-0 z-10 border-b border-legion-border text-[11px] font-semibold uppercase tracking-wider text-legion-muted">
+                                <tr>
+                                    <th class="py-3 px-3.5">Fecha</th>
+                                    <th class="py-3 px-2.5">Horario</th>
+                                    <th class="py-3 px-2 text-center">Horas</th>
+                                    <th class="py-3 px-2.5">Modalidad</th>
+                                    <th class="py-3 px-2.5">Estado</th>
+                                    <th class="py-3 px-3">Observaciones</th>
+                                    <th class="py-3 px-3 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-tbody" class="divide-y divide-legion-border/70 text-xs sm:text-sm bg-white">
+                                <!-- Filas generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Resumen inferior -->
+                <div class="mt-4 pt-3 border-t border-legion-border flex flex-wrap items-center justify-between gap-2 text-xs text-legion-muted">
+                    <div id="table-summary-text">Cargando sesiones...</div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="markAllPlannedAsDone()" class="text-legion-green hover:underline font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-check-double"></i> Cumplir todos los planificados
+                        </button>
+                        <button onclick="clearPlannedSessions()" class="text-legion-brown hover:underline font-medium flex items-center gap-1">
+                            <i class="fa-regular fa-trash-can"></i> Limpiar planificados
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: AUTO-PLANIFICADOR INTELIGENTE (ESTRICTO 20H / 20H EN ENTEROS) -->
+    <div id="planner-modal" class="fixed inset-0 z-50 hidden bg-legion-charcoal/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 border border-legion-border shadow-2xl">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-legion-border">
+                <div>
+                    <h3 class="font-display text-base font-bold text-legion-charcoal">
+                        Auto-planificar Horas Faltantes
+                    </h3>
+                    <p class="text-xs text-legion-muted">
+                        Genera las sesiones faltantes hasta completar exactamente <strong>20h Presenciales</strong> y <strong>20h de Teletrabajo</strong>.
+                    </p>
+                </div>
+                <button onclick="closePlannerModal()" class="text-legion-muted hover:text-legion-charcoal px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Faltantes en enteros -->
+            <div class="grid grid-cols-2 gap-3 mb-4 bg-legion-bg p-3.5 rounded-xl border border-legion-border">
+                <div>
+                    <span class="text-xs text-legion-muted block">Faltan Teletrabajo</span>
+                    <span id="modal-deficit-tele" class="font-display text-xl font-extrabold text-legion-green">0 h</span>
+                    <span class="text-[10px] text-legion-muted">Bloques de 1h (6:30 o 16:20)</span>
+                </div>
+                <div>
+                    <span class="text-xs text-legion-muted block">Faltan Presencial</span>
+                    <span id="modal-deficit-pres" class="font-display text-xl font-extrabold text-legion-brown">0 h</span>
+                    <span class="text-[10px] text-legion-muted">Sábados 6h (7:00 am - 1:00 pm)</span>
+                </div>
+            </div>
+
+            <div class="space-y-3.5 text-xs sm:text-sm">
+                <div>
+                    <label class="block text-xs font-medium text-legion-muted mb-1">Comenzar a planificar desde:</label>
+                    <input type="date" id="planner-start-date" value="2026-11-14"
+                        class="w-full rounded-lg bg-legion-bg border border-legion-border px-3 py-2 text-legion-charcoal outline-none">
+                </div>
+
+                <div class="p-3 rounded-lg bg-legion-surface/60 border border-legion-border text-xs text-legion-charcoal space-y-1.5">
+                    <div class="font-semibold text-legion-green flex items-center gap-1.5">
+                        <i class="fa-solid fa-check-circle"></i> Esquema de distribución automática:
+                    </div>
+                    <p>• <strong>Presencial (hasta 20h):</strong> Sábados de 7:00 am a 1:00 pm (6h cada uno) y remanente exacto.</p>
+                    <p>• <strong>Teletrabajo (hasta 20h):</strong> Días hábiles de 1 hora alternando antes de jornada (6:30 am) y fin de jornada (4:20 pm).</p>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-legion-border flex justify-end gap-2">
+                <button onclick="closePlannerModal()" class="px-4 py-2 rounded-lg bg-legion-surface hover:bg-legion-border text-xs font-medium text-legion-charcoal transition">
+                    Cancelar
+                </button>
+                <button onclick="generateMissingSchedule()" class="px-4 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-xs font-semibold text-white transition shadow-sm">
+                    Generar Planificación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CONFIRMAR RESTAURAR BASE EXCEL -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden bg-legion-charcoal/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 border border-legion-border shadow-xl">
+            <h3 class="font-display text-base font-bold text-legion-charcoal mb-2">
+                ¿Restaurar registros base del Excel?
+            </h3>
+            <p class="text-xs sm:text-sm text-legion-muted mb-5">
+                Se restablecerán los registros originales del archivo Excel (20 Oct, 28 Oct, 31 Oct, 10 Nov).
+            </p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeResetModal()" class="px-4 py-2 rounded-lg bg-legion-surface hover:bg-legion-border text-xs font-medium text-legion-charcoal transition">
+                    Cancelar
+                </button>
+                <button onclick="confirmResetData()" class="px-4 py-2 rounded-lg bg-legion-brown hover:bg-legion-brownHover text-xs font-semibold text-white transition">
+                    Restaurar Base
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SINCRONIZACIÓN EN LA NUBE (PARA ABRIR EN CUALQUIER COMPUTADOR) -->
+    <div id="cloud-modal" class="fixed inset-0 z-50 hidden bg-legion-charcoal/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 border border-legion-border shadow-2xl overflow-y-auto max-h-[90vh]">
+            
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-legion-border">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-legion-cobaltSoft text-legion-cobalt flex items-center justify-center">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </span>
+                    <div>
+                        <h3 class="font-display text-base font-bold text-legion-charcoal">
+                            Sincronización en la Nube (100% Gratis)
+                        </h3>
+                        <p class="text-xs text-legion-muted">
+                            Guarda tus horas y marcas para abrirlas desde cualquier computador o celular.
+                        </p>
+                    </div>
+                </div>
+                <button onclick="closeCloudModal()" class="text-legion-muted hover:text-legion-charcoal px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- ESTADO ACTUAL -->
+            <div class="mb-5 p-3.5 rounded-xl bg-legion-bg border border-legion-border flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-legion-muted block">Estado de la conexión:</span>
+                    <span id="modal-sync-status" class="text-sm font-bold text-legion-charcoal">Modo local (Sin sincronización online)</span>
+                    <span id="modal-last-sync" class="text-[11px] text-legion-muted block mt-0.5">Última sincronización: Pendiente</span>
+                </div>
+                <button onclick="testAndSyncCloud(true)" class="px-3 py-1.5 rounded-lg bg-white border border-legion-border hover:bg-legion-surface text-xs font-semibold text-legion-charcoal transition flex items-center gap-1.5 shadow-xs">
+                    <i class="fa-solid fa-rotate"></i> Sincronizar Ahora
+                </button>
+            </div>
+
+            <!-- SELECTOR DE PROVEEDOR -->
+            <div class="space-y-4 text-xs sm:text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-legion-charcoal mb-1.5">Elige tu método de guardado en la nube:</label>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" onclick="selectCloudProvider('firebase')" id="btn-provider-firebase"
+                            class="p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-green bg-legion-greenSoft/40">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-legion-green flex items-center gap-1.5">
+                                    <i class="fa-solid fa-fire text-amber-500"></i> Firebase (Recomendado)
+                                </span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">En tiempo real</span>
+                            </div>
+                            <span class="text-[11px] text-legion-muted">Google Firebase Spark (100% gratis, sin tarjeta). Sincronización instantánea.</span>
+                        </button>
+
+                        <button type="button" onclick="selectCloudProvider('googlesheets')" id="btn-provider-googlesheets"
+                            class="p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-border bg-white hover:bg-legion-bg">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-legion-charcoal flex items-center gap-1.5">
+                                    <i class="fa-solid fa-table text-emerald-600"></i> Google Sheets
+                                </span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">En tu Drive</span>
+                            </div>
+                            <span class="text-[11px] text-legion-muted">Guarda directo en una hoja de Google Sheets vía Google Apps Script gratuito.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONFIGURACIÓN ESPECÍFICA SEGÚN PROVEEDOR -->
+                <div id="section-config-firebase" class="space-y-2">
+                    <label class="block text-xs font-medium text-legion-muted">URL de Firebase Realtime Database:</label>
+                    <div class="flex gap-2">
+                        <input type="url" id="cloud-input-firebase-url" placeholder="https://tu-proyecto-default-rtdb.firebaseio.com"
+                            class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green px-3 py-2 text-xs font-mono text-legion-charcoal outline-none">
+                        <button type="button" onclick="testFirebaseConnection()" class="px-3 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-white text-xs font-semibold whitespace-nowrap shadow-xs">
+                            Probar
+                        </button>
+                    </div>
+                    <div class="p-3 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-1">
+                        <div class="font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb text-amber-600"></i> ¿Cómo obtener tu base de datos Firebase gratis en 2 minutos?
+                        </div>
+                        <ol class="list-decimal list-inside space-y-0.5 text-[11px] text-amber-950">
+                            <li>Entra con tu cuenta de Google a <a href="https://console.firebase.google.com" target="_blank" class="underline font-semibold text-amber-800">console.firebase.google.com</a> y dale a <strong>"Crear un proyecto"</strong>.</li>
+                            <li>En el menú izquierdo ve a <strong>Compilación &rarr; Realtime Database</strong> y haz clic en <strong>"Crear base de datos"</strong>.</li>
+                            <li>En la pestaña <strong>Reglas</strong> pon <code class="bg-amber-100 px-1 rounded font-mono">".read": true, ".write": true</code> y publica.</li>
+                            <li>Copia la URL que aparece arriba (termina en <code class="bg-amber-100 px-1 rounded font-mono">.firebaseio.com</code>) y pégala aquí. ¡Listo!</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div id="section-config-googlesheets" class="space-y-2 hidden">
+                    <label class="block text-xs font-medium text-legion-muted">URL de la aplicación web Google Apps Script:</label>
+                    <div class="flex gap-2">
+                        <input type="url" id="cloud-input-google-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                            class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green px-3 py-2 text-xs font-mono text-legion-charcoal outline-none">
+                        <button type="button" onclick="testGoogleSheetsConnection()" class="px-3 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-white text-xs font-semibold whitespace-nowrap shadow-xs">
+                            Probar
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-legion-muted">
+                        Hemos incluido el archivo <code class="font-mono bg-legion-surface px-1 rounded text-legion-charcoal">google-apps-script.js</code> listo para copiar y pegar en Extensiones &rarr; Apps Script de tu Google Sheet.
+                    </p>
+                </div>
+
+                <!-- RESPALDOS MANUALES Y TRANSFERENCIA -->
+                <div class="pt-3 border-t border-legion-border">
+                    <span class="block text-xs font-semibold text-legion-charcoal mb-2">Respaldos y Archivos:</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="exportDataJson()" class="px-3 py-1.5 rounded-lg bg-legion-surface hover:bg-legion-border text-xs font-medium text-legion-charcoal flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-download"></i> Descargar Copia JSON
+                        </button>
+                        <label class="px-3 py-1.5 rounded-lg bg-legion-surface hover:bg-legion-border text-xs font-medium text-legion-charcoal flex items-center gap-1.5 transition cursor-pointer">
+                            <i class="fa-solid fa-upload"></i> Cargar Copia JSON
+                            <input type="file" id="import-json-file" accept=".json" onchange="importDataJson(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- BOTONES MODAL FOOTER -->
+            <div class="mt-6 pt-4 border-t border-legion-border flex items-center justify-between">
+                <button type="button" onclick="saveCloudSettings(false)" class="text-xs text-legion-muted hover:text-legion-charcoal">
+                    Usar solo en este equipo (Local)
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeCloudModal()" class="px-4 py-2 rounded-lg bg-legion-surface hover:bg-legion-border text-xs font-medium text-legion-charcoal transition">
+                        Cerrar
+                    </button>
+                    <button onclick="saveCloudSettings(true)" class="px-4 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-xs font-semibold text-white transition shadow-sm">
+                        Guardar y Conectar
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT DE LA APLICACIÓN -->
+    <script>
+        /***********************************************************************
+         * 1. DATOS INICIALES DEL EXCEL DE ANDERSON CT
+         ***********************************************************************/
+        const INITIAL_DATA = [
+            {
+                id: 'base-1',
+                fecha: '2026-10-20',
+                dia: 'Martes',
+                horaInicio: '16:20',
+                horaFin: '18:20',
+                horas: 2,
+                estado: 'Cumplido',
+                modalidad: 'Teletrabajo',
+                observaciones: 'Terminar correo Diana funcionario workstation. Actualizar datos Incidentes Tecnológicos para TCT'
+            },
+            {
+                id: 'base-2',
+                fecha: '2026-10-28',
+                dia: 'Miércoles',
+                horaInicio: '16:20',
+                horaFin: '17:20',
+                horas: 1,
+                estado: 'Cumplido',
+                modalidad: 'Teletrabajo',
+                observaciones: 'Revisar contenido y detalles de la capacitación del jueves'
+            },
+            {
+                id: 'base-3',
+                fecha: '2026-10-31',
+                dia: 'Sábado',
+                horaInicio: '09:00',
+                horaFin: '12:00',
+                horas: 3,
+                estado: 'Cumplido',
+                modalidad: 'Presencial',
+                observaciones: 'Analizar proyecto PQRSD para volverlo código modular'
+            },
+            {
+                id: 'base-4',
+                fecha: '2026-11-10',
+                dia: 'Martes',
+                horaInicio: '06:30',
+                horaFin: '07:30',
+                horas: 1,
+                estado: 'Cumplido',
+                modalidad: 'Teletrabajo',
+                observaciones: 'Revisión correcciones proyecto denuncias'
+            },
+            {
+                id: 'base-5',
+                fecha: '2026-11-12',
+                dia: 'Jueves',
+                horaInicio: '06:30',
+                horaFin: '07:30',
+                horas: 1,
+                estado: 'Planificado',
+                modalidad: 'Teletrabajo',
+                observaciones: 'Planificado matutino antes de jornada'
+            }
+        ];
+
+        const STORAGE_KEY = 'compensacion_anderson_v4_cloud';
+        const CLOUD_SETTINGS_KEY = 'compensacion_cloud_settings_v1';
+        
+        let sessions = [];
+        let activeCloudConfig = {
+            provider: 'firebase',
+            firebaseUrl: '',
+            googleScriptUrl: '',
+            syncKey: 'compensatorios_anderson_v1'
+        };
+        let syncStatus = 'local'; // 'local' | 'syncing' | 'synced' | 'error'
+        let lastSyncTimestamp = null;
+        let eventSource = null;
+        let autoSyncDebounceTimer = null;
+
+        const TARGET_DAYS_2027 = [
+            { date: '4 Ene 2027', dayName: 'Lunes', startHour: 0, threshold: 8 },
+            { date: '5 Ene 2027', dayName: 'Martes', startHour: 8, threshold: 16 },
+            { date: '6 Ene 2027', dayName: 'Miércoles', startHour: 16, threshold: 24 },
+            { date: '7 Ene 2027', dayName: 'Jueves', startHour: 24, threshold: 32 },
+            { date: '8 Ene 2027', dayName: 'Viernes', startHour: 32, threshold: 40 }
+        ];
+
+        const DAYS_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        /***********************************************************************
+         * 2. MOTOR DE SINCRONIZACIÓN EN LA NUBE (FIREBASE / GOOGLE SHEETS / LOCAL)
+         ***********************************************************************/
+        function initCloudConfig() {
+            // Cargar de config.js primero
+            if (window.APP_CLOUD_CONFIG) {
+                activeCloudConfig = { ...activeCloudConfig, ...window.APP_CLOUD_CONFIG };
+            }
+            // Si el usuario configuró algo localmente en este navegador, tiene precedencia
+            try {
+                const saved = localStorage.getItem(CLOUD_SETTINGS_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    activeCloudConfig = { ...activeCloudConfig, ...parsed };
+                }
+            } catch (e) {
+                console.warn('Error leyendo CLOUD_SETTINGS_KEY', e);
+            }
+
+            // Normalizar URL de Firebase (quitar diagonales y .json si las puso)
+            if (activeCloudConfig.firebaseUrl) {
+                activeCloudConfig.firebaseUrl = activeCloudConfig.firebaseUrl.trim().replace(/\/+$/, '').replace(/\/sessions\.json$/, '');
+            }
+
+            updateCloudBadgeUI();
+        }
+
+        function isCloudActive() {
+            if (activeCloudConfig.provider === 'firebase' && activeCloudConfig.firebaseUrl) return true;
+            if (activeCloudConfig.provider === 'googlesheets' && activeCloudConfig.googleScriptUrl) return true;
+            return false;
+        }
+
+        function updateCloudBadgeUI() {
+            const dot = document.getElementById('cloud-indicator-dot');
+            const text = document.getElementById('cloud-status-text');
+            const badge = document.getElementById('cloud-status-badge');
+            const modalStatus = document.getElementById('modal-sync-status');
+            const modalLast = document.getElementById('modal-last-sync');
+
+            const timeStr = lastSyncTimestamp ? `Hoy ${lastSyncTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Pendiente';
+            if (modalLast) modalLast.textContent = `Última sincronización: ${timeStr}`;
+
+            if (!isCloudActive()) {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+                text.textContent = 'Modo Local';
+                badge.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition bg-white border-legion-border hover:bg-legion-surface shadow-xs';
+                if (modalStatus) modalStatus.textContent = 'Modo Local (Sin sincronización online)';
+                return;
+            }
+
+            if (syncStatus === 'syncing') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping';
+                text.textContent = 'Guardando...';
+                badge.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition bg-amber-50 border-amber-300 text-amber-900 shadow-xs animate-syncing';
+                if (modalStatus) modalStatus.textContent = 'Sincronizando con la nube...';
+            } else if (syncStatus === 'synced') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+                text.textContent = 'En la Nube';
+                badge.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition bg-emerald-50/80 border-emerald-300 text-emerald-900 shadow-xs';
+                if (modalStatus) modalStatus.textContent = `Conectado a ${activeCloudConfig.provider === 'firebase' ? 'Firebase' : 'Google Sheets'} (${timeStr})`;
+            } else if (syncStatus === 'error') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                text.textContent = 'Reintentando...';
+                badge.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-2 transition bg-rose-50 border-rose-300 text-rose-900 shadow-xs';
+                if (modalStatus) modalStatus.textContent = 'Error de conexión. Se guardó localmente.';
+            }
+        }
+
+        // Carga inicial (LocalStorage primero para velocidad instantánea, luego Cloud)
+        async function loadSessions() {
+            let loadedFromLocal = false;
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        sessions = cleanSessionList(parsed);
+                        loadedFromLocal = true;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+            if (!loadedFromLocal) {
+                sessions = JSON.parse(JSON.stringify(INITIAL_DATA));
+                saveLocalSessions();
+            }
+
+            updateDashboard();
+            renderTable();
+
+            // Si hay nube configurada, sincronizar inmediatamente
+            if (isCloudActive()) {
+                await fetchCloudSessions();
+                initRealtimeListener();
+            }
+        }
+
+        function cleanSessionList(arr) {
+            return arr.map(s => ({
+                id: s.id || ('s-' + Date.now() + '-' + Math.floor(Math.random() * 1000)),
+                fecha: s.fecha || '2026-11-13',
+                dia: s.dia || getDayName(s.fecha),
+                horaInicio: s.horaInicio || '16:20',
+                horaFin: s.horaFin || '17:20',
+                horas: Math.max(1, Math.round(parseInt(s.horas, 10) || 1)),
+                modalidad: s.modalidad === 'Presencial' ? 'Presencial' : 'Teletrabajo',
+                estado: s.estado === 'Cumplido' ? 'Cumplido' : 'Planificado',
+                observaciones: s.observaciones || ''
+            })).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.horaInicio.localeCompare(b.horaInicio));
+        }
+
+        function saveLocalSessions() {
+            sessions.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.horaInicio.localeCompare(b.horaInicio));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+        }
+
+        // Guarda localmente y programa sincronización automática a la nube
+        function saveSessions(immediateCloud = false) {
+            saveLocalSessions();
+            
+            if (!isCloudActive()) {
+                syncStatus = 'local';
+                updateCloudBadgeUI();
+                return;
+            }
+
+            syncStatus = 'syncing';
+            updateCloudBadgeUI();
+
+            clearTimeout(autoSyncDebounceTimer);
+            if (immediateCloud) {
+                pushCloudSessions();
+            } else {
+                autoSyncDebounceTimer = setTimeout(() => {
+                    pushCloudSessions();
+                }, 600); // Debounce de 600ms para no saturar peticiones
+            }
+        }
+
+        async function fetchCloudSessions() {
+            if (!isCloudActive()) return;
+
+            syncStatus = 'syncing';
+            updateCloudBadgeUI();
+
+            try {
+                if (activeCloudConfig.provider === 'firebase') {
+                    const url = `${activeCloudConfig.firebaseUrl}/sessions.json`;
+                    const res = await fetch(url, { cache: 'no-store' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        sessions = cleanSessionList(data);
+                        saveLocalSessions();
+                        lastSyncTimestamp = new Date();
+                        syncStatus = 'synced';
+                        updateDashboard();
+                        renderTable();
+                        showToast('Sincronizado con la nube');
+                    } else if (data === null) {
+                        // Base de datos vacía, inicializar con nuestros datos locales
+                        await pushCloudSessions();
+                    }
+                } else if (activeCloudConfig.provider === 'googlesheets') {
+                    const res = await fetch(`${activeCloudConfig.googleScriptUrl}?action=get`, { cache: 'no-store' });
+                    const json = await res.json();
+                    if (json && json.status === 'ok' && Array.isArray(json.sessions) && json.sessions.length > 0) {
+                        sessions = cleanSessionList(json.sessions);
+                        saveLocalSessions();
+                        lastSyncTimestamp = new Date();
+                        syncStatus = 'synced';
+                        updateDashboard();
+                        renderTable();
+                        showToast('Datos cargados de Google Sheets');
+                    }
+                }
+            } catch (err) {
+                console.error('Error al descargar de la nube:', err);
+                syncStatus = 'error';
+            }
+            updateCloudBadgeUI();
+        }
+
+        async function pushCloudSessions() {
+            if (!isCloudActive()) return;
+
+            try {
+                if (activeCloudConfig.provider === 'firebase') {
+                    const url = `${activeCloudConfig.firebaseUrl}/sessions.json`;
+                    const res = await fetch(url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sessions)
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    lastSyncTimestamp = new Date();
+                    syncStatus = 'synced';
+                } else if (activeCloudConfig.provider === 'googlesheets') {
+                    const res = await fetch(activeCloudConfig.googleScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // Apps Script web app
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessions })
+                    });
+                    lastSyncTimestamp = new Date();
+                    syncStatus = 'synced';
+                }
+            } catch (err) {
+                console.error('Error al subir a la nube:', err);
+                syncStatus = 'error';
+            }
+            updateCloudBadgeUI();
+        }
+
+        // Escucha en tiempo real si se usa Firebase (SSE nativo sin librerías externas)
+        function initRealtimeListener() {
+            if (activeCloudConfig.provider !== 'firebase' || !activeCloudConfig.firebaseUrl) return;
+            
+            try {
+                if (eventSource) eventSource.close();
+                const streamUrl = `${activeCloudConfig.firebaseUrl}/sessions.json`;
+                eventSource = new EventSource(streamUrl);
+
+                eventSource.addEventListener('put', (e) => {
+                    try {
+                        const parsed = JSON.parse(e.data);
+                        if (parsed && parsed.data && Array.isArray(parsed.data)) {
+                            // Si los datos son distintos a los actuales, actualizar sin recargar
+                            const remoteJson = JSON.stringify(cleanSessionList(parsed.data));
+                            const localJson = JSON.stringify(sessions);
+                            if (remoteJson !== localJson) {
+                                sessions = cleanSessionList(parsed.data);
+                                saveLocalSessions();
+                                lastSyncTimestamp = new Date();
+                                syncStatus = 'synced';
+                                updateDashboard();
+                                renderTable();
+                                updateCloudBadgeUI();
+                                showToast('Actualizado desde otro computador');
+                            }
+                        }
+                    } catch (err) {}
+                });
+
+                eventSource.onerror = () => {
+                    // Si falla el stream, no pasa nada, sigue con polling normal
+                };
+            } catch (e) {
+                console.warn('EventSource no iniciado:', e);
+            }
+        }
+
+        // Sincronizar automáticamente cuando el usuario regresa a la pestaña
+        window.addEventListener('focus', () => {
+            if (isCloudActive()) {
+                fetchCloudSessions();
+            }
+        });
+
+        // Polling de respaldo cada 30 segundos
+        setInterval(() => {
+            if (isCloudActive() && syncStatus !== 'syncing') {
+                fetchCloudSessions();
+            }
+        }, 30000);
+
+        /***********************************************************************
+         * 3. MODAL Y CONTROL DE CONFIGURACIÓN CLOUD
+         ***********************************************************************/
+        function openCloudModal() {
+            document.getElementById('cloud-input-firebase-url').value = activeCloudConfig.firebaseUrl || '';
+            document.getElementById('cloud-input-google-url').value = activeCloudConfig.googleScriptUrl || '';
+            selectCloudProvider(activeCloudConfig.provider || 'firebase');
+            updateCloudBadgeUI();
+            document.getElementById('cloud-modal').classList.remove('hidden');
+        }
+
+        function closeCloudModal() {
+            document.getElementById('cloud-modal').classList.add('hidden');
+        }
+
+        function selectCloudProvider(provider) {
+            activeCloudConfig.provider = provider;
+            const btnFb = document.getElementById('btn-provider-firebase');
+            const btnGs = document.getElementById('btn-provider-googlesheets');
+            const secFb = document.getElementById('section-config-firebase');
+            const secGs = document.getElementById('section-config-googlesheets');
+
+            if (provider === 'firebase') {
+                btnFb.className = 'p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-green bg-legion-greenSoft/40';
+                btnGs.className = 'p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-border bg-white hover:bg-legion-bg';
+                secFb.classList.remove('hidden');
+                secGs.classList.add('hidden');
+            } else {
+                btnGs.className = 'p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-green bg-legion-greenSoft/40';
+                btnFb.className = 'p-3 rounded-xl border text-left transition flex flex-col justify-between border-legion-border bg-white hover:bg-legion-bg';
+                secGs.classList.remove('hidden');
+                secFb.classList.add('hidden');
+            }
+        }
+
+        async function testFirebaseConnection() {
+            let url = document.getElementById('cloud-input-firebase-url').value.trim();
+            if (!url) {
+                alert('Por favor escribe la URL de tu base de datos Firebase.');
+                return;
+            }
+            url = url.replace(/\/+$/, '').replace(/\/sessions\.json$/, '');
+            showToast('Probando conexión con Firebase...');
+            try {
+                const res = await fetch(`${url}/test_ping.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ping: 'ok', timestamp: Date.now() })
+                });
+                if (res.ok) {
+                    showToast('✅ ¡Conexión con Firebase exitosa!');
+                    alert('¡Excelente! La base de datos responde correctamente y tiene permisos de lectura/escritura.');
+                } else {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+            } catch (err) {
+                alert('No se pudo conectar a Firebase. Revisa que:\n1. La URL esté bien escrita.\n2. En la pestaña "Reglas" hayas puesto ".read": true y ".write": true.');
+            }
+        }
+
+        async function testGoogleSheetsConnection() {
+            const url = document.getElementById('cloud-input-google-url').value.trim();
+            if (!url) {
+                alert('Por favor escribe la URL de tu aplicación Google Apps Script.');
+                return;
+            }
+            showToast('Probando conexión con Google Sheets...');
+            try {
+                const res = await fetch(`${url}?action=get`);
+                const json = await res.json();
+                if (json.status === 'ok') {
+                    showToast('✅ ¡Conexión exitosa con Google Sheets!');
+                } else {
+                    throw new Error(json.message);
+                }
+            } catch (err) {
+                alert('No se pudo conectar con Google Sheets. Revisa la URL y que la implementación esté en "Cualquier persona" (Anyone).');
+            }
+        }
+
+        async function testAndSyncCloud(notify = true) {
+            if (!isCloudActive()) {
+                showToast('Configura Firebase o Google Sheets primero');
+                openCloudModal();
+                return;
+            }
+            if (notify) showToast('Sincronizando...');
+            await pushCloudSessions();
+            await fetchCloudSessions();
+            if (notify) showToast('¡Sincronización completada!');
+        }
+
+        function saveCloudSettings(enable = true) {
+            const fbUrl = document.getElementById('cloud-input-firebase-url').value.trim().replace(/\/+$/, '').replace(/\/sessions\.json$/, '');
+            const gsUrl = document.getElementById('cloud-input-google-url').value.trim();
+
+            if (enable) {
+                activeCloudConfig.firebaseUrl = fbUrl;
+                activeCloudConfig.googleScriptUrl = gsUrl;
+            } else {
+                activeCloudConfig.firebaseUrl = '';
+                activeCloudConfig.googleScriptUrl = '';
+                activeCloudConfig.provider = 'local';
+            }
+
+            localStorage.setItem(CLOUD_SETTINGS_KEY, JSON.stringify(activeCloudConfig));
+            updateCloudBadgeUI();
+            closeCloudModal();
+
+            if (enable && isCloudActive()) {
+                testAndSyncCloud(true);
+                initRealtimeListener();
+            } else {
+                showToast('Modo local activo');
+            }
+        }
+
+        function exportDataJson() {
+            const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute('href', dataStr);
+            dlAnchor.setAttribute('download', `Compensatorios_Anderson_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast('Copia de respaldo JSON descargada');
+        }
+
+        function importDataJson(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const parsed = JSON.parse(event.target.result);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        sessions = cleanSessionList(parsed);
+                        saveSessions(true);
+                        updateDashboard();
+                        renderTable();
+                        closeCloudModal();
+                        showToast(`¡Se cargaron ${sessions.length} sesiones del archivo!`);
+                    } else {
+                        alert('El archivo JSON no contiene una lista válida de sesiones.');
+                    }
+                } catch (err) {
+                    alert('Error al leer el archivo JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /***********************************************************************
+         * 4. FUNCIONES DE TIEMPO Y AUXILIARES
+         ***********************************************************************/
+        function getDayName(dateStr) {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            return DAYS_ES[dateObj.getDay()] || '';
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-');
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
+        }
+
+        function formatTime12h(time24) {
+            if (!time24) return '';
+            const [hStr, mStr] = time24.split(':');
+            let h = parseInt(hStr, 10);
+            const suffix = h >= 12 ? 'pm' : 'am';
+            h = h % 12 || 12;
+            return `${h}:${mStr} ${suffix}`;
+        }
+
+        function updateDayLabel() {
+            const dateVal = document.getElementById('input-fecha').value;
+            document.getElementById('input-dia').value = getDayName(dateVal);
+        }
+
+        function recalcHours() {
+            const start = document.getElementById('input-inicio').value;
+            const end = document.getElementById('input-fin').value;
+            if (start && end) {
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                let diffMin = (eh * 60 + em) - (sh * 60 + sm);
+                if (diffMin < 0) diffMin += 24 * 60;
+                const hoursInt = Math.max(1, Math.round(diffMin / 60));
+                document.getElementById('input-horas').value = hoursInt;
+            }
+        }
+
+        /***********************************************************************
+         * 5. ATAJOS RÁPIDOS DE PLANIFICACIÓN A 1 CLIC
+         ***********************************************************************/
+        function findNextSuitableDate(type) {
+            let maxDate = new Date(2026, 10, 13);
+            sessions.forEach(s => {
+                if (s.fecha) {
+                    const [y, m, d] = s.fecha.split('-').map(Number);
+                    const cd = new Date(y, m - 1, d);
+                    if (cd > maxDate) maxDate = cd;
+                }
+            });
+
+            const next = new Date(maxDate.getTime());
+            next.setDate(next.getDate() + 1);
+
+            if (type === 'SABADO') {
+                while (next.getDay() !== 6) {
+                    next.setDate(next.getDate() + 1);
+                }
+            } else {
+                while (next.getDay() === 0 || next.getDay() === 6) {
+                    next.setDate(next.getDate() + 1);
+                }
+            }
+
+            const y = next.getFullYear();
+            const m = String(next.getMonth() + 1).padStart(2, '0');
+            const d = String(next.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function triggerPreset(presetType) {
+            if (presetType === 'SABADO_6H') {
+                const targetDate = findNextSuitableDate('SABADO');
+                document.getElementById('input-fecha').value = targetDate;
+                document.getElementById('input-dia').value = 'Sábado';
+                document.getElementById('input-inicio').value = '07:00';
+                document.getElementById('input-fin').value = '13:00';
+                document.getElementById('input-horas').value = 6;
+                document.getElementById('input-modalidad').value = 'Presencial';
+                document.getElementById('input-estado').value = 'Planificado';
+                document.getElementById('input-observaciones').value = 'Compensación sábado presencial jornada completa';
+                showToast('Atajo: Sábado Presencial (6h)');
+            } else if (presetType === 'MANANA_1H') {
+                const targetDate = findNextSuitableDate('HABIL');
+                document.getElementById('input-fecha').value = targetDate;
+                document.getElementById('input-dia').value = getDayName(targetDate);
+                document.getElementById('input-inicio').value = '06:30';
+                document.getElementById('input-fin').value = '07:30';
+                document.getElementById('input-horas').value = 1;
+                document.getElementById('input-modalidad').value = 'Teletrabajo';
+                document.getElementById('input-estado').value = 'Planificado';
+                document.getElementById('input-observaciones').value = 'Antes de jornada laboral';
+                showToast('Atajo: Antes de Jornada (1h)');
+            } else if (presetType === 'TARDE_1H') {
+                const targetDate = findNextSuitableDate('HABIL');
+                document.getElementById('input-fecha').value = targetDate;
+                document.getElementById('input-dia').value = getDayName(targetDate);
+                document.getElementById('input-inicio').value = '16:20';
+                document.getElementById('input-fin').value = '17:20';
+                document.getElementById('input-horas').value = 1;
+                document.getElementById('input-modalidad').value = 'Teletrabajo';
+                document.getElementById('input-estado').value = 'Planificado';
+                document.getElementById('input-observaciones').value = 'Final de jornada laboral';
+                showToast('Atajo: Final de Jornada (1h)');
+            }
+            document.getElementById('session-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        /***********************************************************************
+         * 6. CÁLCULO DE DASHBOARD (ENTEROS ESTRICTOS)
+         ***********************************************************************/
+        function updateDashboard() {
+            let teleDone = 0, telePlanned = 0;
+            let presDone = 0, presPlanned = 0;
+
+            sessions.forEach(s => {
+                const h = Math.round(parseInt(s.horas, 10) || 0);
+                if (s.modalidad === 'Teletrabajo') {
+                    if (s.estado === 'Cumplido') teleDone += h;
+                    else telePlanned += h;
+                } else {
+                    if (s.estado === 'Cumplido') presDone += h;
+                    else presPlanned += h;
+                }
+            });
+
+            const totalDone = teleDone + presDone;
+            const totalPlanned = telePlanned + presPlanned;
+            const totalProjected = totalDone + totalPlanned;
+            const totalUnassigned = Math.max(0, 40 - totalProjected);
+
+            const teleProjected = teleDone + telePlanned;
+            const teleUnassigned = Math.max(0, 20 - teleProjected);
+
+            const presProjected = presDone + presPlanned;
+            const presUnassigned = Math.max(0, 20 - presProjected);
+
+            const totalDonePct = Math.min(100, Math.round((totalDone / 40) * 100));
+            const totalPlannedPct = Math.min(100 - totalDonePct, Math.round((totalPlanned / 40) * 100));
+            const totalProjectedPct = Math.min(100, Math.round((totalProjected / 40) * 100));
+
+            // Tarjeta 1: General (40h)
+            document.getElementById('badge-total-pct').textContent = `${totalDonePct}% cumplido`;
+            document.getElementById('stat-total-done').textContent = totalDone;
+            document.getElementById('stat-total-projected').textContent = `${totalProjected} h (${totalProjectedPct}%)`;
+            document.getElementById('bar-total-done').style.width = `${totalDonePct}%`;
+            document.getElementById('bar-total-planned').style.width = `${totalPlannedPct}%`;
+            document.getElementById('sub-total-done').textContent = `${totalDone} h`;
+            document.getElementById('sub-total-planned').textContent = `${totalPlanned} h`;
+            document.getElementById('sub-total-unassigned').textContent = `${totalUnassigned} h`;
+
+            // Tarjeta 2: Teletrabajo (20h)
+            const teleDonePct = Math.min(100, Math.round((teleDone / 20) * 100));
+            const telePlannedPct = Math.min(100 - teleDonePct, Math.round((telePlanned / 20) * 100));
+
+            document.getElementById('stat-tele-done').textContent = teleDone;
+            document.getElementById('stat-tele-projected').textContent = `${teleProjected} / 20 h`;
+            document.getElementById('bar-tele-done').style.width = `${teleDonePct}%`;
+            document.getElementById('bar-tele-planned').style.width = `${telePlannedPct}%`;
+            document.getElementById('sub-tele-done').textContent = `${teleDone} h`;
+            document.getElementById('sub-tele-planned').textContent = `${telePlanned} h`;
+            document.getElementById('sub-tele-unassigned').textContent = `${teleUnassigned} h`;
+
+            // Tarjeta 3: Presencial (20h)
+            const presDonePct = Math.min(100, Math.round((presDone / 20) * 100));
+            const presPlannedPct = Math.min(100 - presDonePct, Math.round((presPlanned / 20) * 100));
+
+            document.getElementById('stat-pres-done').textContent = presDone;
+            document.getElementById('stat-pres-projected').textContent = `${presProjected} / 20 h`;
+            document.getElementById('bar-pres-done').style.width = `${presDonePct}%`;
+            document.getElementById('bar-pres-planned').style.width = `${presPlannedPct}%`;
+            document.getElementById('sub-pres-done').textContent = `${presDone} h`;
+            document.getElementById('sub-pres-planned').textContent = `${presPlanned} h`;
+            document.getElementById('sub-pres-unassigned').textContent = `${presUnassigned} h`;
+
+            // Días de enero 2027
+            renderJanuaryDays(totalDone, totalProjected);
+
+            // Modal de auto-planificación
+            document.getElementById('modal-deficit-tele').textContent = `${teleUnassigned} h`;
+            document.getElementById('modal-deficit-pres').textContent = `${presUnassigned} h`;
+        }
+
+        function renderJanuaryDays(totalDone, totalProjected) {
+            const container = document.getElementById('january-days-grid');
+            container.innerHTML = TARGET_DAYS_2027.map(day => {
+                const doneInDay = Math.max(0, Math.min(8, totalDone - day.startHour));
+                const projectedInDay = Math.max(0, Math.min(8, totalProjected - day.startHour));
+                const plannedOnlyInDay = Math.max(0, projectedInDay - doneInDay);
+
+                const donePct = Math.round((doneInDay / 8) * 100);
+                const plannedPct = Math.round((plannedOnlyInDay / 8) * 100);
+
+                const isCovered = totalDone >= day.threshold;
+                const isPlanned = !isCovered && totalProjected >= day.threshold;
+
+                let boxClasses = 'bg-legion-bg border-legion-border text-legion-muted';
+                let badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-legion-surface text-legion-muted">${doneInDay}/8h</span>`;
+
+                if (isCovered) {
+                    boxClasses = 'bg-legion-greenSoft/80 border-legion-green/40 text-legion-charcoal';
+                    badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-legion-green text-white">Cubierto (8h)</span>`;
+                } else if (isPlanned) {
+                    boxClasses = 'bg-legion-brownSoft/80 border-legion-brown/40 text-legion-charcoal';
+                    badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-legion-brown/15 text-legion-brown">En agenda (8h)</span>`;
+                } else if (projectedInDay > 0) {
+                    boxClasses = 'bg-white border-legion-border text-legion-charcoal';
+                    badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-legion-surface text-legion-charcoal">${projectedInDay}/8h en curso</span>`;
+                }
+
+                return `
+                    <div class="p-3.5 rounded-xl border ${boxClasses} flex flex-col justify-between transition">
+                        <div>
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-legion-muted">${day.dayName}</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="font-display text-sm font-bold text-legion-charcoal mb-2.5">${day.date}</div>
+                        </div>
+                        <div>
+                            <div class="w-full h-1.5 bg-legion-surface rounded-full overflow-hidden flex">
+                                <div class="h-full bg-legion-green smooth-bar" style="width: ${donePct}%"></div>
+                                <div class="h-full bar-planned-brown smooth-bar" style="width: ${plannedPct}%"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-medium text-legion-muted mt-1">
+                                <span>Cumplido: ${doneInDay} h</span>
+                                <span>Meta: ${day.threshold} h</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /***********************************************************************
+         * 7. CRUD DE SESIONES CON AUTO-SINCRONIZACIÓN
+         ***********************************************************************/
+        function renderTable() {
+            const tbody = document.getElementById('sessions-tbody');
+            const modFilter = document.getElementById('filter-modalidad').value;
+            const estFilter = document.getElementById('filter-estado').value;
+            const query = document.getElementById('filter-search').value.trim().toLowerCase();
+
+            const filtered = sessions.filter(s => {
+                if (modFilter !== 'ALL' && s.modalidad !== modFilter) return false;
+                if (estFilter !== 'ALL' && s.estado !== estFilter) return false;
+                if (query) {
+                    const text = `${s.fecha} ${s.dia} ${s.observaciones} ${s.modalidad}`.toLowerCase();
+                    if (!text.includes(query)) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-10 text-center text-legion-muted text-xs">
+                            No se encontraron registros con los criterios seleccionados.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = filtered.map(s => {
+                    const isDone = s.estado === 'Cumplido';
+                    const isTele = s.modalidad === 'Teletrabajo';
+                    const horasInt = Math.round(parseInt(s.horas, 10) || 1);
+
+                    const modPill = isTele
+                        ? `<button onclick="toggleModality('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-greenSoft text-legion-green hover:opacity-80 transition" title="Clic para alternar modalidad">
+                            <i class="fa-solid fa-laptop text-[10px]"></i> Teletrabajo
+                           </button>`
+                        : `<button onclick="toggleModality('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-brownSoft text-legion-brown hover:opacity-80 transition" title="Clic para alternar modalidad">
+                            <i class="fa-regular fa-building text-[10px]"></i> Presencial
+                           </button>`;
+
+                    const statusPill = isDone
+                        ? `<button onclick="toggleStatus('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-legion-green text-white hover:bg-legion-greenHover transition shadow-xs" title="Clic para cambiar a Planificado">
+                            <i class="fa-solid fa-check text-[10px]"></i> Cumplido
+                           </button>`
+                        : `<button onclick="toggleStatus('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-legion-surface text-legion-charcoal hover:bg-legion-border transition" title="Clic para marcar como Cumplido">
+                            <i class="fa-regular fa-clock text-[10px] text-legion-brown"></i> Planificado
+                           </button>`;
+
+                    return `
+                        <tr class="hover:bg-legion-bg/60 transition">
+                            <td class="py-3 px-3.5 whitespace-nowrap">
+                                <div class="font-bold text-legion-charcoal">${formatDateShort(s.fecha)}</div>
+                                <div class="text-[11px] text-legion-muted">${s.dia}</div>
+                            </td>
+                            <td class="py-3 px-2.5 whitespace-nowrap text-legion-muted font-medium">
+                                ${formatTime12h(s.horaInicio)} – ${formatTime12h(s.horaFin)}
+                            </td>
+                            <td class="py-3 px-2 text-center whitespace-nowrap">
+                                <span class="font-display font-extrabold text-legion-charcoal">${horasInt} h</span>
+                            </td>
+                            <td class="py-3 px-2.5 whitespace-nowrap">
+                                ${modPill}
+                            </td>
+                            <td class="py-3 px-2.5 whitespace-nowrap">
+                                ${statusPill}
+                            </td>
+                            <td class="py-3 px-3 text-legion-charcoal max-w-xs">
+                                ${s.observaciones
+                                    ? `<div class="line-clamp-2 text-xs leading-relaxed">${s.observaciones}</div>`
+                                    : `<span class="text-xs text-legion-muted/50 italic">Sin observaciones</span>`}
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button onclick="editSession('${s.id}')" class="p-1.5 rounded-md text-legion-muted hover:text-legion-charcoal hover:bg-legion-surface transition" title="Editar">
+                                        <i class="fa-regular fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteSession('${s.id}')" class="p-1.5 rounded-md text-legion-muted hover:text-red-700 hover:bg-red-50 transition" title="Eliminar">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const sumHours = filtered.reduce((acc, s) => acc + (Math.round(parseInt(s.horas, 10)) || 0), 0);
+            document.getElementById('table-summary-text').innerHTML =
+                `Mostrando <strong>${filtered.length}</strong> de ${sessions.length} sesiones (<strong>${sumHours} h</strong> en lista)`;
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('input-id').value;
+            const fecha = document.getElementById('input-fecha').value;
+            const dia = getDayName(fecha) || document.getElementById('input-dia').value;
+            const horaInicio = document.getElementById('input-inicio').value;
+            const horaFin = document.getElementById('input-fin').value;
+            const horas = Math.round(parseInt(document.getElementById('input-horas').value, 10)) || 1;
+            const modalidad = document.getElementById('input-modalidad').value;
+            const estado = document.getElementById('input-estado').value;
+            const observaciones = document.getElementById('input-observaciones').value.trim();
+
+            if (id) {
+                const idx = sessions.findIndex(s => s.id === id);
+                if (idx !== -1) {
+                    sessions[idx] = { id, fecha, dia, horaInicio, horaFin, horas, modalidad, estado, observaciones };
+                    showToast('Sesión actualizada correctamente');
+                }
+            } else {
+                sessions.push({
+                    id: 's-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                    fecha,
+                    dia,
+                    horaInicio,
+                    horaFin,
+                    horas,
+                    modalidad,
+                    estado,
+                    observaciones
+                });
+                showToast(`Sesión de ${horas}h agregada`);
+            }
+
+            saveSessions();
+            resetForm();
+            updateDashboard();
+            renderTable();
+        }
+
+        function toggleStatus(id) {
+            const item = sessions.find(s => s.id === id);
+            if (!item) return;
+            item.estado = item.estado === 'Cumplido' ? 'Planificado' : 'Cumplido';
+            saveSessions();
+            updateDashboard();
+            renderTable();
+            showToast(`Estado cambiado a: ${item.estado}`);
+        }
+
+        function toggleModality(id) {
+            const item = sessions.find(s => s.id === id);
+            if (!item) return;
+            item.modalidad = item.modalidad === 'Teletrabajo' ? 'Presencial' : 'Teletrabajo';
+            saveSessions();
+            updateDashboard();
+            renderTable();
+            showToast(`Modalidad: ${item.modalidad}`);
+        }
+
+        function editSession(id) {
+            const item = sessions.find(s => s.id === id);
+            if (!item) return;
+
+            document.getElementById('input-id').value = item.id;
+            document.getElementById('input-fecha').value = item.fecha;
+            document.getElementById('input-dia').value = item.dia;
+            document.getElementById('input-inicio').value = item.horaInicio;
+            document.getElementById('input-fin').value = item.horaFin;
+            document.getElementById('input-horas').value = Math.round(parseInt(item.horas, 10) || 1);
+            document.getElementById('input-modalidad').value = item.modalidad;
+            document.getElementById('input-estado').value = item.estado;
+            document.getElementById('input-observaciones').value = item.observaciones;
+
+            document.getElementById('form-title').textContent = 'Editar sesión';
+            document.getElementById('btn-submit-label').textContent = 'Actualizar sesión';
+            document.getElementById('edit-badge').classList.remove('hidden');
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            document.getElementById('session-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function resetForm() {
+            document.getElementById('session-form').reset();
+            document.getElementById('input-id').value = '';
+            document.getElementById('input-fecha').value = '2026-11-13';
+            updateDayLabel();
+            document.getElementById('input-inicio').value = '16:20';
+            document.getElementById('input-fin').value = '17:20';
+            document.getElementById('input-horas').value = 1;
+            document.getElementById('input-modalidad').value = 'Teletrabajo';
+            document.getElementById('input-estado').value = 'Planificado';
+
+            document.getElementById('form-title').textContent = 'Agregar sesión';
+            document.getElementById('btn-submit-label').textContent = 'Guardar sesión';
+            document.getElementById('edit-badge').classList.add('hidden');
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        function deleteSession(id) {
+            sessions = sessions.filter(s => s.id !== id);
+            saveSessions();
+            updateDashboard();
+            renderTable();
+            showToast('Sesión eliminada');
+        }
+
+        function markAllPlannedAsDone() {
+            let changed = 0;
+            sessions.forEach(s => {
+                if (s.estado === 'Planificado') {
+                    s.estado = 'Cumplido';
+                    changed++;
+                }
+            });
+            if (changed > 0) {
+                saveSessions();
+                updateDashboard();
+                renderTable();
+                showToast(`${changed} sesiones pasaron a Cumplidas`);
+            } else {
+                showToast('No hay sesiones planificadas pendientes');
+            }
+        }
+
+        function clearPlannedSessions() {
+            const before = sessions.length;
+            sessions = sessions.filter(s => s.estado === 'Cumplido');
+            const diff = before - sessions.length;
+            saveSessions();
+            updateDashboard();
+            renderTable();
+            showToast(`Se eliminaron ${diff} sesiones planificadas`);
+        }
+
+        /***********************************************************************
+         * 8. MOTOR DE AUTO-PLANIFICACIÓN (EXACTO 20H PRES + 20H TELE)
+         ***********************************************************************/
+        function openPlannerModal() {
+            updateDashboard();
+            document.getElementById('planner-modal').classList.remove('hidden');
+        }
+
+        function closePlannerModal() {
+            document.getElementById('planner-modal').classList.add('hidden');
+        }
+
+        function generateMissingSchedule() {
+            let teleAssigned = 0, presAssigned = 0;
+            sessions.forEach(s => {
+                const h = Math.round(parseInt(s.horas, 10) || 0);
+                if (s.modalidad === 'Teletrabajo') teleAssigned += h;
+                else presAssigned += h;
+            });
+
+            let teleNeeded = Math.max(0, 20 - teleAssigned);
+            let presNeeded = Math.max(0, 20 - presAssigned);
+
+            if (teleNeeded === 0 && presNeeded === 0) {
+                closePlannerModal();
+                showToast('Ya tienes las 40 horas completas (20h / 20h)');
+                return;
+            }
+
+            const startStr = document.getElementById('planner-start-date').value || '2026-11-14';
+            const [sy, sm, sd] = startStr.split('-').map(Number);
+            let cursor = new Date(sy, sm - 1, sd);
+            let guard = 0;
+            let added = 0;
+            let teleFlip = 0;
+
+            while ((teleNeeded > 0 || presNeeded > 0) && guard < 140) {
+                guard++;
+                const dow = cursor.getDay();
+                const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+                const dayName = DAYS_ES[dow];
+                const dateHasSession = sessions.some(s => s.fecha === iso);
+
+                // 1. PRESENCIAL: Sábados de 6 horas (7:00 am - 1:00 pm) y remanente exacto
+                if (presNeeded > 0 && dow === 6 && !dateHasSession) {
+                    const blockHours = Math.min(6, presNeeded);
+                    const endHour = 7 + blockHours;
+                    sessions.push({
+                        id: 'auto-p-' + Date.now() + '-' + guard,
+                        fecha: iso,
+                        dia: dayName,
+                        horaInicio: '07:00',
+                        horaFin: `${String(endHour).padStart(2, '0')}:00`,
+                        horas: blockHours,
+                        estado: 'Planificado',
+                        modalidad: 'Presencial',
+                        observaciones: blockHours === 6 ? 'Sábado presencial (6h completas)' : `Sábado presencial remanente (${blockHours}h)`
+                    });
+                    presNeeded -= blockHours;
+                    added++;
+                }
+
+                // 2. TELETRABAJO: Días hábiles alternando 6:30 y 16:20
+                if (teleNeeded > 0 && dow >= 1 && dow <= 5 && !dateHasSession) {
+                    const isMorning = (teleFlip % 2 === 0);
+                    teleFlip++;
+
+                    sessions.push({
+                        id: 'auto-t-' + Date.now() + '-' + guard,
+                        fecha: iso,
+                        dia: dayName,
+                        horaInicio: isMorning ? '06:30' : '16:20',
+                        horaFin: isMorning ? '07:30' : '17:20',
+                        horas: 1,
+                        estado: 'Planificado',
+                        modalidad: 'Teletrabajo',
+                        observaciones: isMorning ? 'Antes de jornada (6:30 - 7:30 am)' : 'Final de jornada (4:20 - 5:20 pm)'
+                    });
+                    teleNeeded -= 1;
+                    added++;
+                }
+
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            saveSessions();
+            closePlannerModal();
+            updateDashboard();
+            renderTable();
+            showToast(`Se agregaron ${added} sesiones planificadas (Meta 40h)`);
+        }
+
+        /***********************************************************************
+         * 9. EXPORTACIÓN CSV Y RESET A BASE
+         ***********************************************************************/
+        function exportToCSV() {
+            const headers = ['Fecha', 'Dia', 'Hora Inicio', 'Hora Fin', 'Horas', 'Estado', 'Modalidad', 'Observaciones'];
+            const rows = sessions.map(s => [
+                s.fecha,
+                s.dia,
+                formatTime12h(s.horaInicio),
+                formatTime12h(s.horaFin),
+                Math.round(parseInt(s.horas, 10)),
+                s.estado,
+                s.modalidad,
+                `"${(s.observaciones || '').replace(/"/g, '""')}"`
+            ]);
+
+            const csv = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Planificacion_Compensacion_Anderson_CT_2027.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('Archivo CSV descargado con éxito');
+        }
+
+        function openResetModal() {
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
+        function confirmResetData() {
+            sessions = JSON.parse(JSON.stringify(INITIAL_DATA));
+            saveSessions(true);
+            closeResetModal();
+            updateDashboard();
+            renderTable();
+            showToast('Registros base de Excel restaurados');
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = 'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-legion-charcoal text-white shadow-xl text-xs font-semibold transition-all duration-300';
+            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span><span>${msg}</span>`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 250);
+            }, 2600);
+        }
+
+        window.onload = function () {
+            initCloudConfig();
+            loadSessions();
+            resetForm();
+        };
+    </script>
+</body>
+</html>
