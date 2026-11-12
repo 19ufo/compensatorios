@@ -1,15 +1,15 @@
 /**
  * BACKEND SEGURO / SERVERLESS API PARA VERCEL Y NETLIFY
  * ======================================================
- * Todas las claves, credenciales y URLs de la base de datos están
- * 100% PROTEGIDAS en variables de entorno del servidor.
+ * Todas las claves y URLs de Supabase / Base de datos están
+ * 100% PROTEGIDAS en variables de entorno del servidor (process.env).
  * NADA de claves ni URLs se expone al cliente (navegador).
  *
- * Variables de entorno soportadas (configúralas en Vercel/Netlify o .env):
- * 1. APP_PIN (Opcional): Clave o PIN numérico para que solo tú puedas editar tus horas.
- * 2. UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN (Opción recomendada - 100% gratis).
- * 3. O FIREBASE_DB_URL y FIREBASE_AUTH_SECRET (Google Firebase protegido en el backend).
- * 4. O GITHUB_TOKEN y GIST_ID (Base de datos privada en GitHub Gist).
+ * Variables de entorno soportadas en Vercel:
+ * 1. SUPABASE_URL: URL de tu proyecto Supabase (ej: https://xyz.supabase.co)
+ * 2. SUPABASE_KEY: Tu clave anon o service_role de Supabase
+ * 3. SUPABASE_TABLE (Opcional, por defecto 'compensatorios_sessions')
+ * 4. APP_PIN (Opcional): Clave o PIN numérico para proteger tus registros
  */
 
 const fs = require('fs');
@@ -74,12 +74,10 @@ const INITIAL_FALLBACK_DATA = [
 ];
 
 const LOCAL_DATA_FILE = path.join(process.cwd(), 'data', 'sessions.json');
-
-// Memoria volátil por si no hay disco ni variables de entorno configuradas
 let memorySessions = null;
 
 module.exports = async function handler(req, res) {
-    // Configurar encabezados CORS y de respuesta
+    // Encabezados CORS seguros
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-access-pin');
@@ -89,7 +87,7 @@ module.exports = async function handler(req, res) {
         return res.status(200).end();
     }
 
-    // 1. Verificación de Seguridad por PIN (si APP_PIN está configurado en el servidor)
+    // 1. Verificación de Seguridad por PIN (si APP_PIN está definido en Vercel)
     const serverPin = process.env.APP_PIN;
     if (serverPin) {
         const clientPin = req.headers['x-access-pin'];
@@ -132,7 +130,7 @@ module.exports = async function handler(req, res) {
             await saveSessions(sessions);
             return res.status(200).json({
                 status: 'ok',
-                message: 'Sesiones guardadas de forma segura en el backend',
+                message: 'Sesiones guardadas de forma segura en Supabase / Backend',
                 count: sessions.length,
                 updatedAt: new Date().toISOString()
             });
@@ -149,69 +147,112 @@ module.exports = async function handler(req, res) {
 };
 
 function getActiveStorageName() {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) return 'Supabase PostgreSQL (Cloud)';
     if (process.env.UPSTASH_REDIS_REST_URL) return 'Upstash Redis (Serverless)';
     if (process.env.FIREBASE_DB_URL) return 'Firebase Realtime DB (Server-side)';
-    if (process.env.GITHUB_TOKEN && process.env.GIST_ID) return 'GitHub Private Gist';
     return 'Almacenamiento Local / Memoria Servidor';
 }
 
+/**
+ * Conversión de modelos: camelCase (Frontend) <-> snake_case (Supabase Postgres)
+ */
+function toSupabaseRow(s) {
+    return {
+        id: String(s.id),
+        fecha: String(s.fecha),
+        dia: String(s.dia),
+        hora_inicio: String(s.horaInicio),
+        hora_fin: String(s.horaFin),
+        horas: Math.max(1, Math.round(parseInt(s.horas, 10) || 1)),
+        modalidad: String(s.modalidad),
+        estado: String(s.estado),
+        observaciones: String(s.observaciones || '')
+    };
+}
+
+function fromSupabaseRow(r) {
+    return {
+        id: r.id,
+        fecha: r.fecha,
+        dia: r.dia,
+        horaInicio: r.hora_inicio || r.horaInicio,
+        horaFin: r.hora_fin || r.horaFin,
+        horas: Math.max(1, Math.round(parseInt(r.horas, 10) || 1)),
+        modalidad: r.modalidad,
+        estado: r.estado,
+        observaciones: r.observaciones || ''
+    };
+}
+
 async function getSessions() {
-    // Opción 1: Upstash Redis (Serverless)
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-        const url = `${process.env.UPSTASH_REDIS_REST_URL}/get/anderson_compensatorios_sessions`;
-        const r = await fetch(url, {
-            headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
-        });
-        const json = await r.json();
-        if (json && json.result) {
-            const parsed = typeof json.result === 'string' ? JSON.parse(json.result) : json.result;
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-    }
+    // 1. SUPABASE POSTGRESQL (Opción Principal)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        try {
+            const baseUrl = process.env.SUPABASE_URL.trim().replace(/\/+$/, '');
+            const table = process.env.SUPABASE_TABLE || 'compensatorios_sessions';
+            const endpoint = `${baseUrl}/rest/v1/${table}?select=*&order=fecha.asc,hora_inicio.asc`;
 
-    // Opción 2: Firebase Realtime DB (Protegido por el backend, no visible en frontend)
-    if (process.env.FIREBASE_DB_URL) {
-        let fbUrl = process.env.FIREBASE_DB_URL.trim().replace(/\/+$/, '');
-        if (!fbUrl.endsWith('.json')) fbUrl += '/sessions.json';
-        if (process.env.FIREBASE_AUTH_SECRET) {
-            fbUrl += (fbUrl.includes('?') ? '&' : '?') + `auth=${process.env.FIREBASE_AUTH_SECRET}`;
-        }
-        const r = await fetch(fbUrl);
-        if (r.ok) {
-            const data = await r.json();
-            if (Array.isArray(data) && data.length > 0) return data;
-        }
-    }
+            const r = await fetch(endpoint, {
+                headers: {
+                    'apikey': process.env.SUPABASE_KEY,
+                    'Authorization': `Bearer ${process.env.SUPABASE_KEY}`
+                }
+            });
 
-    // Opción 3: GitHub Private Gist
-    if (process.env.GITHUB_TOKEN && process.env.GIST_ID) {
-        const r = await fetch(`https://api.github.com/gists/${process.env.GIST_ID}`, {
-            headers: {
-                'Authorization': `token ${process.env.GITHUB_TOKEN}`,
-                'User-Agent': 'Compensatorios-Backend'
+            if (r.ok) {
+                const rows = await r.json();
+                if (Array.isArray(rows) && rows.length > 0) {
+                    return rows.map(fromSupabaseRow);
+                }
+            } else {
+                console.warn('Supabase GET status no exitoso:', r.status);
             }
-        });
-        if (r.ok) {
-            const gist = await r.json();
-            if (gist.files && gist.files['sessions.json']) {
-                const parsed = JSON.parse(gist.files['sessions.json'].content);
+        } catch (supaErr) {
+            console.error('Error conectando a Supabase:', supaErr);
+        }
+    }
+
+    // 2. UPSTASH REDIS (Fallback)
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        try {
+            const url = `${process.env.UPSTASH_REDIS_REST_URL}/get/anderson_compensatorios_sessions`;
+            const r = await fetch(url, {
+                headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
+            });
+            const json = await r.json();
+            if (json && json.result) {
+                const parsed = typeof json.result === 'string' ? JSON.parse(json.result) : json.result;
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        }
+        } catch (e) {}
     }
 
-    // Opción 4: Archivo local (si se ejecuta con Node.js en máquina local o contenedor)
+    // 3. FIREBASE REALTIME DB (Fallback en servidor)
+    if (process.env.FIREBASE_DB_URL) {
+        try {
+            let fbUrl = process.env.FIREBASE_DB_URL.trim().replace(/\/+$/, '');
+            if (!fbUrl.endsWith('.json')) fbUrl += '/sessions.json';
+            if (process.env.FIREBASE_AUTH_SECRET) {
+                fbUrl += (fbUrl.includes('?') ? '&' : '?') + `auth=${process.env.FIREBASE_AUTH_SECRET}`;
+            }
+            const r = await fetch(fbUrl);
+            if (r.ok) {
+                const data = await r.json();
+                if (Array.isArray(data) && data.length > 0) return data;
+            }
+        } catch (e) {}
+    }
+
+    // 4. ARCHIVO LOCAL (Para desarrollo local con Node.js)
     try {
         if (fs.existsSync(LOCAL_DATA_FILE)) {
             const raw = fs.readFileSync(LOCAL_DATA_FILE, 'utf-8');
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-    } catch (e) {
-        // En Vercel el filesystem de lectura/escritura es efímero
-    }
+    } catch (e) {}
 
-    // Opción 5: Memoria del proceso
+    // 5. MEMORIA VOLÁTIL
     if (memorySessions && Array.isArray(memorySessions) && memorySessions.length > 0) {
         return memorySessions;
     }
@@ -223,7 +264,41 @@ async function getSessions() {
 async function saveSessions(sessions) {
     memorySessions = sessions;
 
-    // Opción 1: Upstash Redis
+    // 1. SUPABASE POSTGRESQL (Opción Principal)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        const baseUrl = process.env.SUPABASE_URL.trim().replace(/\/+$/, '');
+        const table = process.env.SUPABASE_TABLE || 'compensatorios_sessions';
+        const rows = sessions.map(toSupabaseRow);
+
+        // A. Limpiar registros previos para mantener sincronía exacta (eliminaciones, etc.)
+        await fetch(`${baseUrl}/rest/v1/${table}?id=neq.__dummy__`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': process.env.SUPABASE_KEY,
+                'Authorization': `Bearer ${process.env.SUPABASE_KEY}`
+            }
+        });
+
+        // B. Insertar la lista actualizada de sesiones
+        const insertRes = await fetch(`${baseUrl}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+                'apikey': process.env.SUPABASE_KEY,
+                'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(rows)
+        });
+
+        if (!insertRes.ok) {
+            const errText = await insertRes.text();
+            throw new Error(`Error guardando en Supabase (${insertRes.status}): ${errText}`);
+        }
+        return;
+    }
+
+    // 2. UPSTASH REDIS (Fallback)
     if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
         const url = `${process.env.UPSTASH_REDIS_REST_URL}/set/anderson_compensatorios_sessions`;
         await fetch(url, {
@@ -237,7 +312,7 @@ async function saveSessions(sessions) {
         return;
     }
 
-    // Opción 2: Firebase Realtime DB
+    // 3. FIREBASE REALTIME DB (Fallback)
     if (process.env.FIREBASE_DB_URL) {
         let fbUrl = process.env.FIREBASE_DB_URL.trim().replace(/\/+$/, '');
         if (!fbUrl.endsWith('.json')) fbUrl += '/sessions.json';
@@ -252,32 +327,10 @@ async function saveSessions(sessions) {
         return;
     }
 
-    // Opción 3: GitHub Private Gist
-    if (process.env.GITHUB_TOKEN && process.env.GIST_ID) {
-        await fetch(`https://api.github.com/gists/${process.env.GIST_ID}`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `token ${process.env.GITHUB_TOKEN}`,
-                'User-Agent': 'Compensatorios-Backend',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                files: {
-                    'sessions.json': {
-                        content: JSON.stringify(sessions, null, 2)
-                    }
-                }
-            })
-        });
-        return;
-    }
-
-    // Opción 4: Archivo local (si se ejecuta en Node local)
+    // 4. ARCHIVO LOCAL
     try {
         const dir = path.dirname(LOCAL_DATA_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(LOCAL_DATA_FILE, JSON.stringify(sessions, null, 2), 'utf-8');
-    } catch (e) {
-        // En Vercel el filesystem es de solo lectura, se mantiene en memoria
-    }
+    } catch (e) {}
 }
