@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bitácora Paso a Paso: Compensatorios</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 15mm 18mm 15mm;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1F2937;
+    line-height: 1.55;
+    font-size: 13px;
+    background-color: #FFFFFF;
+    margin: 0;
+    padding: 0;
+  }
+  .hero-banner {
+    background: linear-gradient(135deg, #1E382B 0%, #2D5A45 50%, #6E4C33 100%);
+    color: #FFFFFF;
+    padding: 24px 26px;
+    border-radius: 10px;
+    margin-bottom: 22px;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .hero-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 6px 0;
+    color: #FFFFFF;
+    letter-spacing: -0.3px;
+  }
+  .hero-sub {
+    font-size: 12.5px;
+    color: #E2E8F0;
+    margin: 0;
+    opacity: 0.95;
+  }
+  h1 {
+    font-size: 19px;
+    color: #1E382B;
+    border-bottom: 2px solid #E5E7EB;
+    padding-bottom: 6px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 15.5px;
+    color: #1E382B;
+    border-bottom: 1px solid #E5E7EB;
+    padding-bottom: 4px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13.5px;
+    color: #6E4C33;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-weight: 700;
+    page-break-after: avoid;
+  }
+  p {
+    margin: 0 0 10px 0;
+  }
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 22px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  pre {
+    background-color: #181C20;
+    color: #E2E8F0;
+    padding: 12px 14px;
+    border-radius: 7px;
+    overflow-x: auto;
+    font-family: Consolas, "Cascadia Code", "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    border: 1px solid #2D3748;
+    margin: 10px 0 14px 0;
+    page-break-inside: avoid;
+  }
+  code {
+    background-color: #F3F4F6;
+    color: #9A3412;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: Consolas, "Cascadia Code", "Courier New", monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  pre code {
+    background-color: transparent;
+    color: #E2E8F0;
+    padding: 0;
+    font-weight: 400;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px 0;
+    font-size: 12px;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #E5E7EB;
+    padding: 7px 10px;
+    text-align: left;
+  }
+  th {
+    background-color: #F8FAFC;
+    color: #334155;
+    font-weight: 700;
+  }
+  tr:nth-child(even) {
+    background-color: #FBFBFA;
+  }
+  blockquote {
+    border-left: 4px solid #6E4C33;
+    background-color: #FAF8F5;
+    margin: 12px 0;
+    padding: 8px 14px;
+    border-radius: 0 6px 6px 0;
+    color: #4B5563;
+    font-style: italic;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #E5E7EB;
+    margin: 18px 0;
+  }
+  a {
+    color: #1E382B;
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .doc-footer {
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px solid #E5E7EB;
+    text-align: center;
+    font-size: 11px;
+    color: #64748B;
+    page-break-before: auto;
+  }
+</style>
+</head>
+<body>
+  <div class="hero-banner">
+    <div class="hero-tag">Documentación Técnica Oficial</div>
+    <div class="hero-title">Planificador de Compensatorios</div>
+    <div class="hero-sub">Guía paso a paso: De Excel local a Aplicación Web Segura en Producción (Vercel + Supabase)</div>
+  </div>
+<h1>📖 Bitácora Paso a Paso: Cómo se Creó y Desplegó esta Aplicación</h1>
+<p>Esta guía documenta de principio a fin todo el proceso técnico, arquitectónico y de seguridad que seguimos para transformar una hoja de cálculo local en una <strong>aplicación web moderna, segura, en tiempo real y 100% gratuita</strong> desplegada en internet.</p>
+<hr />
+<h2>📑 Tabla de Contenidos</h2>
+<ol>
+<li><a href="#1-el-problema-inicial-y-diagnóstico">El Problema Inicial y Diagnóstico</a></li>
+<li><a href="#2-arquitectura-elegida-seguridad-primero">Arquitectura Elegida (Seguridad Primero)</a></li>
+<li><a href="#3-construcción-del-frontend-y-backend">Construcción del Frontend y Backend</a></li>
+<li><a href="#4-configuración-de-la-base-de-datos-en-supabase">Configuración de la Base de Datos en Supabase</a></li>
+<li><a href="#5-control-de-versiones-y-subida-a-github">Control de Versiones y Subida a GitHub</a></li>
+<li><a href="#6-despliegue-continuo-en-vercel">Despliegue Continuo en Vercel</a></li>
+<li><a href="#7-auditoría-de-seguridad-y-blindaje">Auditoría de Seguridad y Blindaje</a></li>
+<li><a href="#8-cómo-usar-y-mantener-la-aplicación">Cómo Usar y Mantener la Aplicación</a></li>
+</ol>
+<hr />
+<h2>1. El Problema Inicial y Diagnóstico</h2>
+<h3>El Punto de Partida</h3>
+<p>Teníamos dos archivos en local:
+* <code>Control_Horas_Compensacion - Anderson CT.xlsx</code>: Archivo Excel con los registros de compensación y la meta de 40 horas.
+* <code>planificador_de_horas_de_compensaci_n_enero_2027 (1).html</code>: Un prototipo visual en HTML con Tailwind CSS.</p>
+<h3>El Obstáculo</h3>
+<p>El aplicativo guardaba los cambios únicamente en el <code>localStorage</code> del navegador web de esa máquina específica. 
+* Si abrías el archivo en otro computador o en el celular, aparecía vacío o desactualizado.
+* Las marcas de "Cumplido" hechas en la oficina no se reflejaban en la casa.</p>
+<hr />
+<h2>2. Arquitectura Elegida (Seguridad Primero)</h2>
+<p>El objetivo era tener una versión <strong>online, multi-dispositivo y gratis</strong>, pero con un requisito no negociable: <strong>cero credenciales expuestas en el navegador</strong>.</p>
+<h3>Esquema de la Arquitectura</h3>
+<pre><code>[ NAVEGADOR WEB (Cualquier PC o Celular) ]
+                     │
+                     ▼ (Llamadas limpias sin contraseñas ni URLs)
+              /api/sessions
+                     │
+                     ▼
+[ BACKEND SERVERLESS (Vercel Node.js Function) ]
+   🔒 Lee variables secretas de entorno (process.env):
+      • SUPABASE_URL
+      • SUPABASE_KEY
+      • APP_PIN (Opcional)
+                     │
+                     ▼ (Conexión cifrada directa)
+[ BASE DE DATOS EN LA NUBE (Supabase PostgreSQL) ]
+</code></pre>
+<h3>Tecnologías Seleccionadas (100% Gratuitas)</h3>
+<ul>
+<li><strong>Frontend</strong>: HTML5, Tailwind CSS (vía CDN), FontAwesome 6 y Vanilla JavaScript.</li>
+<li><strong>Backend</strong>: Serverless Function en Node.js sobre <strong>Vercel</strong>.</li>
+<li><strong>Base de Datos</strong>: PostgreSQL gestionado en la nube con <strong>Supabase</strong> (Plan Free).</li>
+<li><strong>Control de Código</strong>: <strong>GitHub</strong>.</li>
+</ul>
+<hr />
+<h2>3. Construcción del Frontend y Backend</h2>
+<h3>A. El Frontend (<code>index.html</code>)</h3>
+<p>Diseñamos una interfaz ejecutiva con paleta sobria inspirada en la Legión de Reconocimiento / Alas de la Libertad (verde bosque <code>#1E382B</code>, cuero cálido <code>#6E4C33</code> y piedra suave <code>#EFECE5</code>):
+* <strong>Cálculo Estricto en Enteros</strong>: Cero decimales para cumplir normas laborales (40h totales: 20h Teletrabajo y 20h Presencial).
+* <strong>Cobertura de Enero 2027</strong>: Tarjetas para los 5 días laborales (4 al 8 de enero de 2027, 8h cada uno).
+* <strong>Atajos Rápidos a 1 Clic</strong>:
+  * Sábado Presencial (6h): Sábados de 7:00 am a 1:00 pm.
+  * Antes de Jornada (1h): 6:30 am a 7:30 am (Teletrabajo).
+  * Final de Jornada (1h): 4:20 pm a 5:20 pm (Teletrabajo).
+* <strong>Motor Inteligente de Auto-planificación</strong>: Calcula el déficit exacto y programa los días faltantes sin solapamientos.
+* <strong>Conexión Limpia</strong>: Llama únicamente a <code>/api/sessions</code>, sin saber qué base de datos existe detrás.</p>
+<h3>B. El Backend (<code>api/sessions.js</code>)</h3>
+<p>Creamos una función serverless que actúa como intermediaria segura:
+* Responde a peticiones <code>GET</code> (lectura) y <code>POST</code> (guardado).
+* Convierte automáticamente entre la nomenclatura de JavaScript (<code>horaInicio</code>, <code>horaFin</code>) y las columnas de PostgreSQL (<code>hora_inicio</code>, <code>hora_fin</code>).
+* Conecta con la API PostgREST de Supabase usando <code>process.env.SUPABASE_URL</code> y <code>process.env.SUPABASE_KEY</code>.</p>
+<hr />
+<h2>4. Configuración de la Base de Datos en Supabase</h2>
+<ol>
+<li>Se creó el proyecto <code>compensatorios</code> en <a href="https://supabase.com/">supabase.com</a>.</li>
+<li>En el <strong>SQL Editor</strong>, se ejecutó el script <code>supabase_schema.sql</code>:
+   ```sql
+   CREATE TABLE IF NOT EXISTS compensatorios_sessions (
+       id TEXT PRIMARY KEY,
+       fecha TEXT NOT NULL,
+       dia TEXT NOT NULL,
+       hora_inicio TEXT NOT NULL,
+       hora_fin TEXT NOT NULL,
+       horas INTEGER NOT NULL DEFAULT 1,
+       modalidad TEXT NOT NULL,
+       estado TEXT NOT NULL,
+       observaciones TEXT DEFAULT '',
+       updated_at TIMESTAMPTZ DEFAULT now()
+   );</li>
+</ol>
+<p>ALTER TABLE compensatorios_sessions ENABLE ROW LEVEL SECURITY;</p>
+<p>CREATE POLICY "Permitir acceso completo a la API de compensatorios"
+   ON compensatorios_sessions FOR ALL USING (true) WITH CHECK (true);
+   <code>``
+3. Se insertaron los 5 registros iniciales del Excel.
+4. Se obtuvieron las 2 claves necesarias:
+   * **</code>SUPABASE_URL<code>**:</code>https://vpiygubqwfsdtvojomkk.supabase.co<code>* **</code>SUPABASE_KEY<code>**: La Publishable Key (</code>anon<code></code>public`).</p>
+<hr />
+<h2>5. Control de Versiones y Subida a GitHub</h2>
+<ol>
+<li>Se inicializó el repositorio local con <code>git init -b main</code>.</li>
+<li>Se vinculó la llave pública de la máquina (<code>id_ed25519.pub</code>) en GitHub Settings.</li>
+<li>Se enlazó el repositorio remoto:
+   <code>bash
+   git remote add origin https://github.com/19ufo/compensatorios.git
+   git push -u origin main</code></li>
+<li>Se subieron todos los archivos del proyecto a GitHub.</li>
+</ol>
+<hr />
+<h2>6. Despliegue Continuo en Vercel</h2>
+<ol>
+<li>En <a href="https://vercel.com/">vercel.com</a>, se importó el repositorio <code>19ufo/compensatorios</code>.</li>
+<li>En la sección <strong>Environment Variables</strong>, se configuraron las claves secretas:</li>
+<li><code>SUPABASE_URL</code> = <code>https://vpiygubqwfsdtvojomkk.supabase.co</code></li>
+<li><code>SUPABASE_KEY</code> = <em>(Clave anon de Supabase)</em></li>
+<li><strong>Ajuste clave de enrutamiento</strong>: Inicialmente Vercel mostraba <code>Modo Local</code> porque <code>vercel.json</code> contenía una directiva obsoleta (<code>routes</code>). Se simplificó <code>vercel.json</code> a:
+   <code>json
+   {
+     "cleanUrls": true
+   }</code>
+   Esto activó de inmediato el enrutamiento automático de Serverless Functions hacia <code>/api/sessions</code>.</li>
+<li>El aplicativo quedó publicado en producción en:
+   👉 <strong><code>https://compensatorios.vercel.app</code></strong></li>
+</ol>
+<hr />
+<h2>7. Auditoría de Seguridad y Blindaje</h2>
+<p>Realizamos una auditoría técnica completa y aplicamos medidas de protección contra los principales riesgos de seguridad web (OWASP Top 10):</p>
+<ol>
+<li><strong>Protección contra Cross-Site Scripting (XSS)</strong>:</li>
+<li>Se crearon las funciones <code>escapeHtml()</code> y <code>sanitizeId()</code> en el frontend.</li>
+<li>Cualquier texto en observaciones o identificadores se codifica antes de insertarse en el DOM (<code>&amp;amp;</code>, <code>&amp;lt;</code>, <code>&amp;gt;</code>, <code>&amp;quot;</code>).</li>
+<li><strong>Mitigación de Inyección de Fórmulas en CSV</strong>:</li>
+<li>Al exportar a CSV, si una observación inicia con <code>=</code>, <code>+</code>, <code>-</code> o <code>@</code>, se antepone una comilla simple (<code>'</code>) para que Excel lo trate como texto inofensivo.</li>
+<li><strong>Restricción de Origen (CORS)</strong>:</li>
+<li>El backend solo acepta peticiones provenientes de dominios autorizados de Vercel y entornos locales de desarrollo.</li>
+<li><strong>Protección contra DoS y Carga Masiva</strong>:</li>
+<li>Límite estricto de máximo 100 sesiones por petición y 500 caracteres por observación.</li>
+<li>Validación de tipos con listas blancas (<code>Teletrabajo</code>/<code>Presencial</code>, <code>Cumplido</code>/<code>Planificado</code>, horas entre 1 y 24).</li>
+<li><strong>Cabeceras de Seguridad HTTP (en <code>vercel.json</code>)</strong>:</li>
+<li><code>X-Frame-Options: DENY</code>: Evita ataques de Clickjacking (que otra página incruste tu app en un iframe).</li>
+<li><code>X-Content-Type-Options: nosniff</code>: Evita que el navegador interprete archivos con tipos MIME incorrectos.</li>
+<li><code>Referrer-Policy: strict-origin-when-cross-origin</code>: Protege la privacidad en las cabeceras de navegación.</li>
+</ol>
+<hr />
+<h2>8. Cómo Usar y Mantener la Aplicación</h2>
+<ul>
+<li><strong>Desde el Celular o Computador</strong>:
+  Abre <code>https://compensatorios.vercel.app</code> en cualquier navegador. Verás el indicador <strong><code>🟢 Backend Seguro</code></strong>.</li>
+<li><strong>Marcar Horas</strong>:
+  Haz clic en el botón de estado de cualquier fila para alternar entre <strong>Planificado</strong> y <strong>Cumplido</strong>. Los cambios se envían automáticamente al backend y se guardan en Supabase.</li>
+<li><strong>Ver los Datos en Crudo</strong>:
+  Puedes entrar a tu panel de <strong>Supabase &rarr; Table Editor &rarr; <code>compensatorios_sessions</code></strong> para ver o editar tus registros como si fuera un Excel en la nube.</li>
+<li><strong>Respaldos</strong>:
+  La aplicación incluye botones para descargar copias en formato <strong>CSV</strong> (para Excel) y <strong>JSON</strong> (para respaldo completo).</li>
+<li><strong>Despliegues Futuros</strong>:
+  Cualquier cambio que hagas en el código local y subas con <code>git push origin main</code> se actualizará automáticamente en Vercel en menos de 15 segundos.</li>
+</ul>
+<hr />
+<p><em>Fin de la bitácora técnica — Desarrollado para Anderson CT (Enero 2027).</em></p>
+  <div class="doc-footer">
+    Documentación oficial del proyecto &bull; Anderson CT &bull; https://compensatorios.vercel.app
+  </div>
+</body>
+</html>
