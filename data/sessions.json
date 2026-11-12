@@ -1,0 +1,57 @@
+[
+  {
+    "id": "base-1",
+    "fecha": "2026-10-20",
+    "dia": "Martes",
+    "horaInicio": "16:20",
+    "horaFin": "18:20",
+    "horas": 2,
+    "estado": "Cumplido",
+    "modalidad": "Teletrabajo",
+    "observaciones": "Terminar correo Diana funcionario workstation. Actualizar datos Incidentes Tecnológicos para TCT"
+  },
+  {
+    "id": "base-2",
+    "fecha": "2026-10-28",
+    "dia": "Miércoles",
+    "horaInicio": "16:20",
+    "horaFin": "17:20",
+    "horas": 1,
+    "estado": "Cumplido",
+    "modalidad": "Teletrabajo",
+    "observaciones": "Revisar contenido y detalles de la capacitación del jueves"
+  },
+  {
+    "id": "base-3",
+    "fecha": "2026-10-31",
+    "dia": "Sábado",
+    "horaInicio": "09:00",
+    "horaFin": "12:00",
+    "horas": 3,
+    "estado": "Cumplido",
+    "modalidad": "Presencial",
+    "observaciones": "Analizar proyecto PQRSD para volverlo código modular"
+  },
+  {
+    "id": "base-4",
+    "fecha": "2026-11-10",
+    "dia": "Martes",
+    "horaInicio": "06:30",
+    "horaFin": "07:30",
+    "horas": 1,
+    "estado": "Cumplido",
+    "modalidad": "Teletrabajo",
+    "observaciones": "Revisión correcciones proyecto denuncias"
+  },
+  {
+    "id": "base-5",
+    "fecha": "2026-11-12",
+    "dia": "Jueves",
+    "horaInicio": "06:30",
+    "horaFin": "07:30",
+    "horas": 1,
+    "estado": "Planificado",
+    "modalidad": "Teletrabajo",
+    "observaciones": "Planificado matutino antes de jornada"
+  }
+]

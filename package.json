@@ -1,0 +1,13 @@
+{
+  "name": "compensatorios-anderson",
+  "version": "2.0.0",
+  "description": "Planificador de Horas de Compensación con Backend Seguro y Sincronización en la Nube",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["compensatorios", "planificador", "seguro"],
+  "author": "Anderson CT",
+  "license": "MIT"
+}
