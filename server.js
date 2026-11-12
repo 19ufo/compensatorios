@@ -62,10 +62,17 @@ const server = http.createServer(async (req, res) => {
     // 2. Servir archivos estáticos del frontend
     let filePath = pathname === '/' ? path.join(__dirname, 'index.html') : path.join(__dirname, pathname);
     
-    // Evitar directory traversal
+    // Evitar directory traversal y acceso a archivos sensibles del backend
     if (!filePath.startsWith(__dirname)) {
         res.statusCode = 403;
         res.end('Acceso denegado');
+        return;
+    }
+
+    const relPath = path.relative(__dirname, filePath).replace(/\\/g, '/');
+    if (relPath.startsWith('api/') || relPath.startsWith('data/') || relPath.startsWith('.') || relPath === 'server.js' || relPath === 'package.json') {
+        res.statusCode = 403;
+        res.end('Acceso restringido');
         return;
     }
 

@@ -1177,6 +1177,21 @@
             }
         }
 
+        // Sanitización contra ataques XSS (Cross-Site Scripting)
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeId(id) {
+            return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        }
+
         /***********************************************************************
          * 5. ATAJOS RÁPIDOS DE PLANIFICACIÓN A 1 CLIC
          ***********************************************************************/
@@ -1404,32 +1419,38 @@
                 tbody.innerHTML = filtered.map(s => {
                     const isDone = s.estado === 'Cumplido';
                     const isTele = s.modalidad === 'Teletrabajo';
-                    const horasInt = Math.round(parseInt(s.horas, 10) || 1);
+                    const horasInt = Math.max(1, Math.min(24, Math.round(parseInt(s.horas, 10) || 1)));
+                    const safeId = sanitizeId(s.id);
+                    const safeObs = escapeHtml(s.observaciones);
+                    const safeDia = escapeHtml(s.dia);
+                    const safeFecha = escapeHtml(formatDateShort(s.fecha));
+                    const safeInicio = escapeHtml(formatTime12h(s.horaInicio));
+                    const safeFin = escapeHtml(formatTime12h(s.horaFin));
 
                     const modPill = isTele
-                        ? `<button onclick="toggleModality('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-greenSoft text-legion-green hover:opacity-80 transition" title="Clic para alternar modalidad">
+                        ? `<button onclick="toggleModality('${safeId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-greenSoft text-legion-green hover:opacity-80 transition" title="Clic para alternar modalidad">
                             <i class="fa-solid fa-laptop text-[10px]"></i> Teletrabajo
                            </button>`
-                        : `<button onclick="toggleModality('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-brownSoft text-legion-brown hover:opacity-80 transition" title="Clic para alternar modalidad">
+                        : `<button onclick="toggleModality('${safeId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-legion-brownSoft text-legion-brown hover:opacity-80 transition" title="Clic para alternar modalidad">
                             <i class="fa-regular fa-building text-[10px]"></i> Presencial
                            </button>`;
 
                     const statusPill = isDone
-                        ? `<button onclick="toggleStatus('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-legion-green text-white hover:bg-legion-greenHover transition shadow-xs" title="Clic para cambiar a Planificado">
+                        ? `<button onclick="toggleStatus('${safeId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-legion-green text-white hover:bg-legion-greenHover transition shadow-xs" title="Clic para cambiar a Planificado">
                             <i class="fa-solid fa-check text-[10px]"></i> Cumplido
                            </button>`
-                        : `<button onclick="toggleStatus('${s.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-legion-surface text-legion-charcoal hover:bg-legion-border transition" title="Clic para marcar como Cumplido">
+                        : `<button onclick="toggleStatus('${safeId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-legion-surface text-legion-charcoal hover:bg-legion-border transition" title="Clic para marcar como Cumplido">
                             <i class="fa-regular fa-clock text-[10px] text-legion-brown"></i> Planificado
                            </button>`;
 
                     return `
                         <tr class="hover:bg-legion-bg/60 transition">
                             <td class="py-3 px-3.5 whitespace-nowrap">
-                                <div class="font-bold text-legion-charcoal">${formatDateShort(s.fecha)}</div>
-                                <div class="text-[11px] text-legion-muted">${s.dia}</div>
+                                <div class="font-bold text-legion-charcoal">${safeFecha}</div>
+                                <div class="text-[11px] text-legion-muted">${safeDia}</div>
                             </td>
                             <td class="py-3 px-2.5 whitespace-nowrap text-legion-muted font-medium">
-                                ${formatTime12h(s.horaInicio)} – ${formatTime12h(s.horaFin)}
+                                ${safeInicio} – ${safeFin}
                             </td>
                             <td class="py-3 px-2 text-center whitespace-nowrap">
                                 <span class="font-display font-extrabold text-legion-charcoal">${horasInt} h</span>
@@ -1441,16 +1462,16 @@
                                 ${statusPill}
                             </td>
                             <td class="py-3 px-3 text-legion-charcoal max-w-xs">
-                                ${s.observaciones
-                                    ? `<div class="line-clamp-2 text-xs leading-relaxed">${s.observaciones}</div>`
+                                ${safeObs
+                                    ? `<div class="line-clamp-2 text-xs leading-relaxed">${safeObs}</div>`
                                     : `<span class="text-xs text-legion-muted/50 italic">Sin observaciones</span>`}
                             </td>
                             <td class="py-3 px-3 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-1">
-                                    <button onclick="editSession('${s.id}')" class="p-1.5 rounded-md text-legion-muted hover:text-legion-charcoal hover:bg-legion-surface transition" title="Editar">
+                                    <button onclick="editSession('${safeId}')" class="p-1.5 rounded-md text-legion-muted hover:text-legion-charcoal hover:bg-legion-surface transition" title="Editar">
                                         <i class="fa-regular fa-pen-to-square"></i>
                                     </button>
-                                    <button onclick="deleteSession('${s.id}')" class="p-1.5 rounded-md text-legion-muted hover:text-red-700 hover:bg-red-50 transition" title="Eliminar">
+                                    <button onclick="deleteSession('${safeId}')" class="p-1.5 rounded-md text-legion-muted hover:text-red-700 hover:bg-red-50 transition" title="Eliminar">
                                         <i class="fa-regular fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -1695,16 +1716,23 @@
          ***********************************************************************/
         function exportToCSV() {
             const headers = ['Fecha', 'Dia', 'Hora Inicio', 'Hora Fin', 'Horas', 'Estado', 'Modalidad', 'Observaciones'];
-            const rows = sessions.map(s => [
-                s.fecha,
-                s.dia,
-                formatTime12h(s.horaInicio),
-                formatTime12h(s.horaFin),
-                Math.round(parseInt(s.horas, 10)),
-                s.estado,
-                s.modalidad,
-                `"${(s.observaciones || '').replace(/"/g, '""')}"`
-            ]);
+            const rows = sessions.map(s => {
+                let safeObs = (s.observaciones || '').replace(/"/g, '""');
+                // Mitigación contra CSV Formula Injection (si inicia con =, +, -, @)
+                if (/^[=+@\-\t\r]/.test(safeObs)) {
+                    safeObs = "'" + safeObs;
+                }
+                return [
+                    s.fecha,
+                    s.dia,
+                    formatTime12h(s.horaInicio),
+                    formatTime12h(s.horaFin),
+                    Math.round(parseInt(s.horas, 10)),
+                    s.estado,
+                    s.modalidad,
+                    `"${safeObs}"`
+                ];
+            });
 
             const csv = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

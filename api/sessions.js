@@ -77,8 +77,15 @@ const LOCAL_DATA_FILE = path.join(process.cwd(), 'data', 'sessions.json');
 let memorySessions = null;
 
 module.exports = async function handler(req, res) {
-    // Encabezados CORS seguros
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Encabezados CORS seguros con validación de origen
+    const origin = req.headers.origin;
+    if (origin) {
+        if (origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        }
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-access-pin');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -127,6 +134,11 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ error: 'Se esperaba un arreglo de sesiones' });
             }
 
+            // Mitigación contra ataques de denegación de servicio (DDoS) por carga masiva
+            if (sessions.length > 100) {
+                return res.status(400).json({ error: 'La lista no puede exceder 100 sesiones' });
+            }
+
             await saveSessions(sessions);
             return res.status(200).json({
                 status: 'ok',
@@ -154,19 +166,42 @@ function getActiveStorageName() {
 }
 
 /**
- * Conversión de modelos: camelCase (Frontend) <-> snake_case (Supabase Postgres)
+ * Conversión y sanitización estricta de modelos: camelCase (Frontend) <-> snake_case (Supabase Postgres)
  */
 function toSupabaseRow(s) {
+    const rawId = String(s.id || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+    const id = rawId || ('s-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+    
+    // Validar formato fecha YYYY-MM-DD
+    const rawFecha = String(s.fecha || '').trim();
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(rawFecha) ? rawFecha : new Date().toISOString().split('T')[0];
+    
+    // Validar modalidad fija
+    const modalidad = (s.modalidad === 'Presencial') ? 'Presencial' : 'Teletrabajo';
+    
+    // Validar estado fijo
+    const estado = (s.estado === 'Cumplido') ? 'Cumplido' : 'Planificado';
+    
+    // Validar rango entero de horas (1 a 24)
+    const horas = Math.min(24, Math.max(1, Math.round(parseInt(s.horas, 10) || 1)));
+    
+    // Sanitizar y truncar observaciones (máximo 500 caracteres, sin bytes de control)
+    const observaciones = String(s.observaciones || '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim().slice(0, 500);
+    
+    const dia = String(s.dia || '').replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ ]/g, '').trim().slice(0, 20);
+    const hora_inicio = String(s.horaInicio || '16:20').trim().slice(0, 8);
+    const hora_fin = String(s.horaFin || '17:20').trim().slice(0, 8);
+
     return {
-        id: String(s.id),
-        fecha: String(s.fecha),
-        dia: String(s.dia),
-        hora_inicio: String(s.horaInicio),
-        hora_fin: String(s.horaFin),
-        horas: Math.max(1, Math.round(parseInt(s.horas, 10) || 1)),
-        modalidad: String(s.modalidad),
-        estado: String(s.estado),
-        observaciones: String(s.observaciones || '')
+        id,
+        fecha,
+        dia: dia || 'Lunes',
+        hora_inicio,
+        hora_fin,
+        horas,
+        modalidad,
+        estado,
+        observaciones
     };
 }
 
