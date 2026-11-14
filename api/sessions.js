@@ -94,32 +94,57 @@ module.exports = async function handler(req, res) {
         return res.status(200).end();
     }
 
-    // 1. Verificación de Seguridad por PIN (si APP_PIN está definido en Vercel)
-    const serverPin = process.env.APP_PIN;
-    if (serverPin) {
-        const clientPin = req.headers['x-access-pin'];
-        if (!clientPin || clientPin.trim() !== serverPin.trim()) {
+    const serverPin = process.env.APP_PIN ? process.env.APP_PIN.trim() : null;
+
+    // Endpoint de verificación rápida del PIN
+    if (req.method === 'GET' && req.query && (req.query.checkPin !== undefined || req.query.verifyPin !== undefined)) {
+        if (!serverPin) {
+            return res.status(200).json({
+                valid: true,
+                pinConfigured: false,
+                message: 'No hay PIN configurado en el servidor. Modo libre activo.'
+            });
+        }
+        const clientPin = (req.headers['x-access-pin'] || req.query.pin || '').trim();
+        if (clientPin === serverPin) {
+            return res.status(200).json({
+                valid: true,
+                pinConfigured: true,
+                message: 'PIN verificado correctamente.'
+            });
+        } else {
             return res.status(401).json({
-                error: 'PIN de acceso inválido o no suministrado.',
-                requiresPin: true
+                valid: false,
+                pinConfigured: true,
+                error: 'PIN de acceso incorrecto.'
             });
         }
     }
 
     try {
-        // 2. Manejo de GET: Leer sesiones
+        // 2. Manejo de GET: Leer sesiones (PÚBLICO: cualquiera puede visualizar)
         if (req.method === 'GET') {
             const sessions = await getSessions();
             return res.status(200).json({
                 status: 'ok',
                 sessions: sessions,
                 count: sessions.length,
-                storage: getActiveStorageName()
+                storage: getActiveStorageName(),
+                pinConfigured: Boolean(serverPin)
             });
         }
 
-        // 3. Manejo de POST / PUT: Guardar sesiones
+        // 3. Manejo de POST / PUT: Guardar sesiones (PROTEGIDO POR PIN)
         if (req.method === 'POST' || req.method === 'PUT') {
+            if (serverPin) {
+                const clientPin = (req.headers['x-access-pin'] || '').trim();
+                if (!clientPin || clientPin !== serverPin) {
+                    return res.status(401).json({
+                        error: 'Acceso denegado: Se requiere PIN de edición para guardar cambios en la nube.',
+                        requiresPin: true
+                    });
+                }
+            }
             let body = req.body;
             if (typeof body === 'string') {
                 try {
