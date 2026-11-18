@@ -1119,7 +1119,6 @@
 
         function requireEditAuth(callback) {
             if (isEditUnlocked) {
-                if (typeof callback === 'function') callback();
                 return true;
             }
             openPinModal(callback);
@@ -1744,10 +1743,9 @@
         }
 
         function handleFormSubmit(e) {
-            e.preventDefault();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
             if (!requireEditAuth(() => {
-                const fakeEvent = { preventDefault: () => {} };
-                handleFormSubmit(fakeEvent);
+                handleFormSubmit();
             })) return;
 
             const id = document.getElementById('input-id').value;
