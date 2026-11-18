@@ -785,23 +785,18 @@
                 </button>
             </div>
 
-            <!-- PROTECCIÓN POR PIN (OPCIONAL) -->
-            <div class="mb-4 p-3.5 rounded-xl bg-white border border-legion-border shadow-xs space-y-2">
-                <div class="flex items-center justify-between">
+            <!-- ESTADO DE EDICIÓN EN ESTE EQUIPO -->
+            <div class="mb-4 p-3.5 rounded-xl bg-white border border-legion-border shadow-xs flex items-center justify-between gap-3">
+                <div>
                     <label class="text-xs font-semibold text-legion-charcoal flex items-center gap-1.5">
-                        <i class="fa-solid fa-key text-amber-600"></i> PIN de Acceso Personal
+                        <i class="fa-solid fa-user-shield text-legion-green"></i> Permisos en este dispositivo:
                     </label>
-                    <span id="pin-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">Sin PIN</span>
+                    <span id="security-modal-auth-desc" class="text-[11px] text-legion-muted block mt-0.5">
+                        Verificando permisos...
+                    </span>
                 </div>
-                <p class="text-[11px] text-legion-muted">
-                    Si configuraste la variable <code class="bg-legion-surface px-1 rounded text-legion-charcoal font-mono">APP_PIN</code> en tu servidor Vercel/Netlify, ingrésala aquí para autorizar la sincronización.
-                </p>
-                <div class="flex gap-2">
-                    <input type="password" id="input-user-pin" placeholder="Ingresa tu PIN si lo activaste..."
-                        class="w-full rounded-lg bg-legion-bg border border-legion-border focus:border-legion-green px-3 py-2 text-xs text-legion-charcoal outline-none">
-                    <button type="button" onclick="saveUserPin()" class="px-3.5 py-2 rounded-lg bg-legion-green hover:bg-legion-greenHover text-white text-xs font-semibold whitespace-nowrap shadow-xs">
-                        Guardar PIN
-                    </button>
+                <div id="security-modal-auth-badge" class="shrink-0">
+                    <!-- Se actualiza dinámicamente -->
                 </div>
             </div>
 
@@ -811,7 +806,7 @@
                     <i class="fa-solid fa-lock text-emerald-700"></i> Privacidad y Seguridad Garantizada
                 </div>
                 <p class="text-[11px] leading-relaxed">
-                    Tus conexiones a la base de datos (Upstash Redis, Firebase Secret o GitHub Gist) residen exclusivamente en variables de entorno del servidor (<code class="font-mono bg-emerald-100/80 px-1 rounded">process.env</code>). El navegador solo se comunica mediante el endpoint seguro <code class="font-mono bg-emerald-100/80 px-1 rounded">/api/sessions</code>.
+                    Tus conexiones a la base de datos (Supabase PostgreSQL Cloud) y tu clave maestra (<code class="font-mono bg-emerald-100/80 px-1 rounded">APP_PIN</code>) residen exclusivamente en variables de entorno del servidor (<code class="font-mono bg-emerald-100/80 px-1 rounded">process.env</code>). Nadie desde el navegador puede ver o cambiar tu clave real.
                 </p>
             </div>
 
@@ -1130,14 +1125,17 @@
             const badge = document.getElementById('cloud-status-badge');
             const modalStatus = document.getElementById('modal-backend-status');
             const modalStorage = document.getElementById('modal-storage-info');
-            const pinBadge = document.getElementById('pin-status-badge');
+            const authDesc = document.getElementById('security-modal-auth-desc');
+            const authBadge = document.getElementById('security-modal-auth-badge');
 
-            const hasPin = Boolean(getUserPin());
-            if (pinBadge) {
-                pinBadge.textContent = hasPin ? 'PIN Configurado' : 'Sin PIN';
-                pinBadge.className = hasPin
-                    ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
-                    : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700';
+            if (authDesc && authBadge) {
+                if (isEditUnlocked) {
+                    authDesc.textContent = 'Este equipo está autorizado para registrar y modificar sesiones.';
+                    authBadge.innerHTML = '<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-lock-open"></i> Edición Activa</span>';
+                } else {
+                    authDesc.textContent = 'Modo Solo Lectura. Para modificar horas, usa el botón superior \'Desbloquear\'.';
+                    authBadge.innerHTML = '<span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 flex items-center gap-1"><i class="fa-solid fa-lock"></i> Solo Lectura</span>';
+                }
             }
 
             const timeStr = lastSyncTimestamp ? `Hoy ${lastSyncTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Pendiente';
@@ -1334,29 +1332,12 @@
          * 3. MODAL Y SEGURIDAD DEL CLIENTE
          ***********************************************************************/
         function openSecurityModal() {
-            const inputPin = document.getElementById('input-user-pin');
-            if (inputPin) inputPin.value = getUserPin();
             updateCloudBadgeUI();
             document.getElementById('security-modal').classList.remove('hidden');
         }
 
         function closeSecurityModal() {
             document.getElementById('security-modal').classList.add('hidden');
-        }
-
-        async function saveUserPin() {
-            const val = document.getElementById('input-user-pin').value.trim();
-            if (val) {
-                localStorage.setItem(USER_PIN_KEY, val);
-                showToast('PIN guardado en este equipo');
-            } else {
-                localStorage.removeItem(USER_PIN_KEY);
-                sessionStorage.removeItem(USER_PIN_KEY);
-                showToast('PIN eliminado');
-            }
-            await validateSavedPinSilently();
-            updateCloudBadgeUI();
-            checkBackendHealth(true);
         }
 
         function exportDataJson() {
