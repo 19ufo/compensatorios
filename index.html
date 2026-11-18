@@ -923,6 +923,7 @@
         let isEditUnlocked = false;
         let pendingEditAction = null;
         let isServerPinConfigured = false;
+        let hasPendingLocalChanges = false;
 
         function getUserPin() {
             return localStorage.getItem(USER_PIN_KEY) || sessionStorage.getItem(USER_PIN_KEY) || '';
@@ -1049,10 +1050,16 @@
                         sessionStorage.setItem(USER_PIN_KEY, pinVal);
                     }
                     isEditUnlocked = true;
+                    syncStatus = 'synced';
                     updateAuthBadgeUI();
                     updateCloudBadgeUI();
                     closePinModal();
                     showToast('🔓 Modo de edición habilitado');
+
+                    // Guardar de inmediato en la nube cualquier cambio local pendiente
+                    if (hasPendingLocalChanges) {
+                        pushSessionsToBackend();
+                    }
 
                     if (typeof pendingEditAction === 'function') {
                         const action = pendingEditAction;
@@ -1222,10 +1229,14 @@
 
         // Guarda localmente y programa sincronización automática con el backend
         function saveSessions(immediate = false) {
+            hasPendingLocalChanges = true;
             saveLocalSessions();
             
-            if (syncStatus === 'unauthorized') {
-                updateCloudBadgeUI();
+            // Si no está desbloqueado el PIN, abrir el modal para que ingrese el PIN y autorice
+            if (!isEditUnlocked) {
+                openPinModal(() => {
+                    pushSessionsToBackend();
+                });
                 return;
             }
 
@@ -1238,7 +1249,7 @@
             } else {
                 autoSyncDebounceTimer = setTimeout(() => {
                     pushSessionsToBackend();
-                }, 500); // 500ms debounce
+                }, 300);
             }
         }
 
@@ -1262,11 +1273,14 @@
                         const remoteJson = JSON.stringify(cleanSessionList(data.sessions));
                         const localJson = JSON.stringify(sessions);
                         if (remoteJson !== localJson) {
-                            sessions = cleanSessionList(data.sessions);
-                            saveLocalSessions();
-                            updateDashboard();
-                            renderTable();
-                            if (showToastMsg) showToast('Datos actualizados desde el servidor');
+                            // Solo actualizar desde el servidor si no tenemos cambios locales pendientes de guardar
+                            if (!hasPendingLocalChanges && syncStatus !== 'syncing') {
+                                sessions = cleanSessionList(data.sessions);
+                                saveLocalSessions();
+                                updateDashboard();
+                                renderTable();
+                                if (showToastMsg) showToast('Datos actualizados desde el servidor');
+                            }
                         }
                     } else if (isEditUnlocked) {
                         // Solo enviar sesiones locales si el usuario está autorizado para editar
@@ -1304,9 +1318,11 @@
 
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
+                hasPendingLocalChanges = false;
                 lastSyncTimestamp = new Date();
                 syncStatus = 'synced';
                 updateCloudBadgeUI();
+                showToast('☁️ Guardado en la nube con éxito');
             } catch (err) {
                 console.warn('Backend no alcanzable, guardado localmente:', err);
                 syncStatus = 'local';
@@ -1765,7 +1781,7 @@
                 showToast(`Sesión de ${horas}h agregada`);
             }
 
-            saveSessions();
+            saveSessions(true);
             resetForm();
             updateDashboard();
             renderTable();
